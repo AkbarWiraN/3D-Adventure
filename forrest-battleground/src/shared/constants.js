@@ -45,6 +45,9 @@ export const LOOT = Object.freeze({
   PICKUP_RANGE: 2.5,
   INVENTORY_SLOTS: 2,
   BOW_START_ARROWS: 10,
+  // Respawn loot: server-authoritative (prompt.md §1.2 "Loot respawn 45-90 detik").
+  RESPAWN_MIN_MS: 45000,
+  RESPAWN_MAX_MS: 90000,
 });
 
 export const NETWORK = Object.freeze({

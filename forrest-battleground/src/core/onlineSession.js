@@ -21,6 +21,12 @@ export class OnlineSession {
     this.character = character;
 
     this.remotes = new Map(); // sessionId -> {mesh, target:{x,y,z,yaw}, prev, at}
+    // State HUD online (sumber: snapshot server, bukan combat lokal).
+    this.inv = [null, null];
+    this.slot = 0;
+    this.cooldownMs = 0;
+    this.enemies = []; // posisi anonim dari enemy_map (tanpa nama/HP)
+    this.deathShown = false;
     this.net = createClient({
       onMessage: (m) => this._onMessage(m),
       onStatus: (s, ev) => this._onStatus(s, ev),
@@ -61,11 +67,29 @@ export class OnlineSession {
   _onMessage(m) {
     if (m.t === 'snapshot') {
       const s = m.self || {};
+      const wasDead = this.solo.player.dead;
       if (this.solo.player.dead !== Boolean(s.dead)) {
         // Server yang menentukan mati/hidup; klien hanya mengikuti.
         this.solo.player.dead = Boolean(s.dead);
       }
       this.solo.player.hp = s.hp ?? this.solo.player.hp;
+      // Overlay kematian + hitung mundur respawn (server-authoritative).
+      if (this.solo.player.dead) {
+        this.solo.hud.show(false);
+        this.solo.hud.showDeath(true, s.respawnInMs ?? 0);
+        this.deathShown = true;
+      } else if (this.deathShown) {
+        this.solo.hud.showDeath(false);
+        this.deathShown = false;
+        this.solo.hud.show(true);
+      }
+      // Inventori/cooldown dari server — HUD online tidak punya combat lokal.
+      if (Array.isArray(s.inv)) {
+        this.inv = s.inv;
+        this.slot = s.slot ?? 0;
+        this.cooldownMs = s.cooldownMs ?? 0;
+        this._updateWeaponHud();
+      }
       // Correction ke posisi otoritatif server (snapshot 10Hz); camera tetap lokal.
       if (Number.isFinite(s.x) && Number.isFinite(s.z)) {
         this.solo.player.position.set(s.x, s.y ?? this.solo.player.position.y, s.z);
@@ -75,6 +99,16 @@ export class OnlineSession {
       this.solo.minimap.update(
         { x: s.x ?? this.solo.player.position.x, z: s.z ?? this.solo.player.position.z, yaw: s.yaw ?? 0 },
         (m.players || []).map((p) => ({ x: p.x, z: p.z, dead: p.d }))
+      );
+    }
+    if (m.t === 'enemy_map') {
+      // Marker anonim 2 Hz (prompt.md §1.1 minimap): tanpa username/HP.
+      this.enemies = (m.players || []).map((p) => ({ x: p.x, z: p.z, dead: p.d }));
+      // Minimap Solo baca this.enemies — bagikan referensi yang sama.
+      this.solo.enemies = this.enemies;
+      this.solo.minimap.update(
+        { x: this.solo.player.position.x, z: this.solo.player.position.z, yaw: this.solo.cameraRig.yaw + this.solo.cameraRig.userYawOffset },
+        this.enemies
       );
     }
     if (m.t === 'hit') {
@@ -105,7 +139,23 @@ export class OnlineSession {
       const text = map[m.code];
       if (text) this.solo.hud.toast(text);
     }
+    if (m.t === 'respawn') {
+      // Spawn baru sudah otoritatif; snapshot berikutnya akan mengoreksi posisi.
+      this.solo.hud.showDeath(false);
+      this.deathShown = false;
+      this.solo.hud.show(true);
+      this.solo.hud.toast('Respawn · HP 100');
+      this.solo.input.enable(!this.solo.paused);
+    }
     if (m.t === 'leave_ack') this._closed = true;
+  }
+
+  /** HUD senjata/ammo/cooldown dari state server. */
+  _updateWeaponHud() {
+    const item = this.inv[this.slot];
+    const name = item?.type === 'bow' ? 'Busur' : item?.type === 'sword' ? 'Pedang' : 'Tangan Kosong';
+    this.solo.hud.setWeapon(name, item?.ammo ?? null);
+    this.solo.hud.setCooldown(this.cooldownMs <= 0);
   }
 
   _me() {
@@ -184,6 +234,8 @@ export class OnlineSession {
   // --------------------------------------------------------------- lifecycle
   dispose() {
     clearInterval(this._inputClock);
+    this.solo.hud.showDeath(false);
+    this.deathShown = false;
     for (const un of this._unsubs) un();
     this._unsubs = [];
     this.net.leave();

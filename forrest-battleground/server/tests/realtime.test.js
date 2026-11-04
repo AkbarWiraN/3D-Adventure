@@ -313,4 +313,75 @@ describe('Fase 3 — WSS authoritative', () => {
     await ck.waitFor('leave_ack');
     ck.close(); cv.close();
   });
+
+  test('8. safe spawn: respawn selalu >= 30 m dari musuh (20 sampel)', async () => {
+    const gw = (await import('../src/realtime/index.js')).getRealtime();
+    const room = gw.room;
+    for (const p of [...room.players.values()]) room.leave(p.sessionId, 'test');
+
+    // Satu pemain NYATA di posisi tetap; spawn pemain lain harus >= 30 m dari dia.
+    const a = room.join({ sessionId: 'sp-a', userId: 'sp-u-a', username: 'Anchor', character: 'male' });
+    a.x = 120; a.z = -80; a.mx = 0; a.mz = 0;
+    const dists = [];
+    for (let i = 0; i < 25; i++) {
+      const s = room._pickSpawn();
+      dists.push(Math.round(Math.hypot(s.x - a.x, s.z - a.z)));
+    }
+    const worst = Math.min(...dists);
+    assert.ok(
+      worst >= 30,
+      `spawn hanya ${worst} m dari pemain (spek >= 30 m): ${dists.join(',')}`
+    );
+
+    // Dua pemain: spawn kedua juga jauh dari yang pertama.
+    const b = room.join({ sessionId: 'sp-b', userId: 'sp-u-b', username: 'Second', character: 'female' });
+    assert.ok(
+      Math.hypot(b.x - a.x, b.z - a.z) >= 30,
+      `spawn kedua hanya ${Math.round(Math.hypot(b.x - a.x, b.z - a.z))} m`
+    );
+    room.leave('sp-a', 'test'); room.leave('sp-b', 'test');
+  });
+
+  test('9. loot respawn 45-90 s server-authoritative', async () => {
+    const gw = (await import('../src/realtime/index.js')).getRealtime();
+    const room = gw.room;
+    for (const p of [...room.players.values()]) room.leave(p.sessionId, 'test');
+
+    const u = await makeUser('looter');
+    const c = new Client(wsBase); await c.ready();
+    c.send({ t: 'auth', token: u.token }); await c.waitFor('auth_ok');
+    c.send({ t: 'join', room: 'forest' }); await c.waitFor('joined');
+    const p = [...room.players.values()].find((x) => x.userId === u.userId);
+
+    // Ambil loot statis lewat aksi pickup SUNGGUHAN (pindahkan pemain ke titik loot
+    // server-side; klien nyata memang harus berjalan ke sana).
+    const spot = [...room.loot.values()].find((l) => l.type !== 'arrows');
+    assert.ok(spot, 'loot statis harus ada di room');
+    p.x = spot.x; p.z = spot.z; p.mx = 0; p.mz = 0;
+    c.send({ t: 'action', kind: 'pickup' });
+    await wait(200);
+    assert.ok(!room.loot.has(spot.id), 'loot harus hilang dari tanah setelah diambil');
+
+    // Terjadwal 45-90 s.
+    const at = room.respawns.get(spot.id);
+    assert.ok(at, 'loot statis harus punya jadwal respawn');
+    const delta = at - Date.now();
+    assert.ok(delta >= 44000 && delta <= 91000, `jadwal respawn ${delta} ms di luar 45-90 s`);
+
+    // Set waktu ke sebelum batas bawah: tidak boleh muncul.
+    room._respawnLoot(Date.now() + 44000);
+    assert.ok(!room.loot.has(spot.id), 'loot muncul terlalu cepat (<45 s)');
+
+    // Melewati batas atas: muncul lagi dengan ID & tipe yang sama.
+    room._respawnLoot(at + 1);
+    const back = room.loot.get(spot.id);
+    assert.ok(back, 'loot statis tidak kembali setelah 45-90 s');
+    assert.equal(back.type, spot.type, 'tipe loot berubah saat respawn');
+    assert.equal(back.x, spot.x);
+    assert.equal(back.z, spot.z);
+
+    c.send({ t: 'leave', sessionId: p.sessionId });
+    await c.waitFor('leave_ack');
+    c.close();
+  });
 });

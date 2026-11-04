@@ -189,6 +189,17 @@ CHECKLIST:
   [QA] npm ci / npm test / npm run build:pages → diuji (build 32 file, audit lolos)
 
 ────────────────────────────────────────────────────────
+[2026-11-04 23:28 WIB] VERIFIKASI ULANG FASE 2 (dikonfirmasi jalan, bukan klaim)
+  npm test → unit 42/42; server npm test → 32/32; realtime.test.js → 9/9
+  browser-smoke.mjs → VERDICT PASS: WebGL aktual, solo loot→5 hit 100→0→kill feed→
+    death overlay→respawn 3s HP100+tangan kosong→exit bersih (listener bus 0), lalu
+    register/login→lobby→onlineCount 0/8 authoritative→keluar. Online C: join room
+    via WSS, enemy marker 1, exit bersih.
+  online-smoke.mjs → VERDICT PASS (dua akun, join, PvP WSS, online 1→0)
+  build:pages → 37 file 2.07 MB, audit lolos
+  Status: Fase 2 SELESAI. Ratelimit register 5/15m/IP sempat menghambat uji ulang
+  (kuota terpakai smoke run) — perilaku produksi wajar, bukan bug.
+
 [2026-11-04 23:20 WIB] BENCHMARK BEBAN NYATA + DUA BUG BACKEND DIPERBAIKI
 
 BENCHMARK (ab, ke https://api-be.bssn.biz.id langsung tanpa proxy):

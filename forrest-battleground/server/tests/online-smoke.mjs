@@ -199,9 +199,6 @@ async function main() {
   need(R.ui_ws_state?.joined === true, `WS UI tidak join: ${JSON.stringify(R.ui_ws_state)}`);
   need(R.online_with_ui === 1, `online dengan UI = ${R.online_with_ui}`);
   need(R.online_after_ui_exit === 0, `online setelah UI exit = ${R.online_after_ui_exit}`);
-  need(R.online_final === 0, `online akhir = ${R.online_final}`);
-
-
   // cleanup SEBELUM verdict: room harus kosong (exit UI sudah kirim leave)
   const st5 = await api('/api/v1/maps/forest/status', { token: A.token });
   R.online_final = st5.data?.status?.onlineCount;

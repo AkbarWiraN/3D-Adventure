@@ -208,6 +208,11 @@ export function createRealtime({ allowedOrigins, rooms = ['forest'], hardCap = 8
   room.onEvent = (name, payload) => {
     if (name === 'kill') broadcast('kill', { ...payload });
     if (name === 'join' || name === 'leave') broadcast(name, { ...payload, online: room.onlineCount });
+    // Loot: state authoritative. Klien butuh tahu item yang hilang/muncul supaya
+    // HUD (prompt pickup) dan mesh dunia konsisten.
+    if (name === 'loot_taken') broadcast('loot_taken', { ...payload });
+    if (name === 'loot_spawn') broadcast('loot_spawn', { ...payload });
+    if (name === 'loot_respawn') broadcast('loot_respawn', { ...payload });
   };
 
   return {

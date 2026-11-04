@@ -59,6 +59,24 @@ export class Hud {
     }
   }
 
+  /**
+   * Overlay kematian + hitung mundur respawn (prompt.md §3.4).
+   * Online: server yang menentukan mati/hidup; klien hanya menampilkan.
+   */
+  showDeath(on, respawnInMs = 0) {
+    const el = document.getElementById('screen-death');
+    const cd = document.getElementById('death-countdown');
+    if (cd) {
+      const sec = Math.max(0, Math.ceil(respawnInMs / 1000));
+      cd.textContent = sec > 0 ? `Respawn dalam ${sec} detik` : 'Respawn…';
+    }
+    if (el) el.classList.toggle('hidden', !on);
+  }
+
+  isDeathVisible() {
+    return !document.getElementById('screen-death')?.classList.contains('hidden');
+  }
+
   setCooldown(ready) {
     if (ready === this._last.cd) return;
     this._last.cd = ready;

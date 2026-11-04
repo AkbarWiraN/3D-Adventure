@@ -30,6 +30,7 @@ export class SoloSession {
     this.character = character;
     this.disposed = false;
     this.paused = false;
+    this.enemies = []; // marker anonim (diisi OnlineSession dari enemy_map)
 
     // GPU resources milik sesi ini (dibuang saat keluar).
     this.owned = [];
@@ -157,8 +158,9 @@ export class SoloSession {
     this.combat?.updateHud();
     this.hud.setCooldown(true);
 
-    // Minimap 8 Hz.
-    this.minimap.update({ x: p.x, z: p.z, yaw: finalYaw }, []);
+    // Minimap 8 Hz. enemies = marker anonim (Online mengisi ini dari enemy_map;
+    // Solo selalu kosong karena bot lokal bukan pemain nyata).
+    this.minimap.update({ x: p.x, z: p.z, yaw: finalYaw }, this.enemies || []);
 
     // Peta penuh ikut update bila terbuka.
     if (this.screens.isMapOpen()) this.minimap.renderBig({ x: p.x, z: p.z, yaw: finalYaw });

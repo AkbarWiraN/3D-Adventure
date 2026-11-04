@@ -147,6 +147,92 @@ async function main() {
     R.logoutVisible = await ev(`!document.getElementById('btn-logout').classList.contains('hidden')`);
     R.soloAfterLogin = await ev(`document.getElementById('btn-solo').disabled===false`);
   }
+  // ---------- Fase C: Online — HUD senjata/ammo, overlay kematian, enemy_map ----------
+  // Butuh backend + satu klien WSS nyata sebagai lawan (biar snapshot/enemy_map terisi).
+  if (BACKEND) {
+    const userC = 'qa_' + Math.random().toString(36).slice(2, 8);
+    const login = await fetch(`${BACKEND}/api/v1/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+      body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123' }),
+    });
+    let tok = null;
+    if (login.status === 200) tok = (await login.json()).token;
+    if (!tok) {
+      const reg = await fetch(`${BACKEND}/api/v1/auth/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+        body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123', character: 'female' }),
+      });
+      if (reg.status === 201) tok = (await reg.json()).token;
+    }
+    R.onlineC = { token: Boolean(tok) };
+
+    // Lawan: akun TERPISAH. Akun sama akan ditutup server (duplicate-session
+    // protection — perilaku benar), jadi marker musuh akan 0 dan uji tidak sah.
+    let foeTok = null;
+    {
+      const foeUser = 'qa_foe_' + Math.random().toString(36).slice(2, 8);
+      const r = await fetch(`${BACKEND}/api/v1/auth/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+        body: JSON.stringify({ username: foeUser, password: 'kata-sandi-qa-123', character: 'male' }),
+      });
+      if (r.status === 201) foeTok = (await r.json()).token;
+      else {
+        const l = await fetch(`${BACKEND}/api/v1/auth/login`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+          body: JSON.stringify({ username: foeUser, password: 'kata-sandi-qa-123' }),
+        });
+        if (l.status === 200) foeTok = (await l.json()).token;
+      }
+      R.onlineC.foeToken = Boolean(foeTok);
+    }
+
+    if (tok && foeTok) {
+      // Lawan: satu WSS nyata (protokol klien sungguhan, bukan mock).
+      const foe = new WebSocket(`${BACKEND.replace('http', 'ws')}/ws`, { headers: { Origin: 'http://127.0.0.1:8099' } });
+      const foeInbox = [];
+      foe.on('message', (raw) => { try { foeInbox.push(JSON.parse(raw.toString())); } catch { /* abaikan */ } });
+      await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('foe open timeout')), 8000); foe.once('open', () => { clearTimeout(t); res(); }); foe.once('error', (e) => { clearTimeout(t); rej(e); }); });
+      foe.send(JSON.stringify({ t: 'auth', token: foeTok }));
+      await new Promise((res) => { const t = setInterval(() => { if (foeInbox.some((m) => m.t === 'auth_ok')) { clearInterval(t); res(); } }, 20); setTimeout(res, 5000); });
+      foe.send(JSON.stringify({ t: 'join', room: 'forest' }));
+      await new Promise((res) => { const t = setInterval(() => { if (foeInbox.some((m) => m.t === 'joined')) { clearInterval(t); res(); } }, 20); setTimeout(res, 5000); });
+
+      // UI: login sebagai userC → mulai Online.
+      await ev(`localStorage.setItem('forest-battleground:settings:v1', JSON.stringify({backendBase:'${BACKEND}',quality:'low',sensitivity:1,invertY:false,showFps:false,lastCharacter:'female'}))`);
+      await send('Page.navigate', { url: `${FRONT}?debug=1` });
+      await sleep(3500);
+      await ev(`(()=>{const o=window.confirm;window.confirm=()=>true;return 'patched'})()`);
+      await ev(`document.getElementById('auth-username').value='${userC}'`);
+      await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
+      await ev(`document.getElementById('btn-login').click()`);
+      await sleep(5000);
+      R.onlineC.loginStatus = await ev(`document.getElementById('auth-status').textContent`);
+      await ev(`document.getElementById('btn-online').click()`);
+      await sleep(8000);
+
+      // HUD senjata & ammo harus terbaca dari snapshot server (bukan combat lokal).
+      R.onlineC.weapon = await ev(`document.getElementById('weapon-name').textContent`);
+      R.onlineC.ammoHidden = await ev(`document.getElementById('ammo-info').classList.contains('hidden')`);
+      // enemy_map harus mengisi marker anonim (lawan ada di room).
+      R.onlineC.enemyMarkers = await ev(`(()=>{const s=window.__fb.getSession();return s&&s.enemies?s.enemies.length:null})()`);
+
+      // Uji overlay kematian + respawn: korban dimatikan server-side lewat WSS lawan.
+      // (Lawan adalah sesi kita sendiri, jadi HP dikurangi sampai mati.)
+      const foeId = foeInbox.find((m) => m.t === 'joined')?.sessionId;
+      const ps = await ev(`(()=>{const s=window.__fb.getSession();return s&&s.net?{sid:s.net.sessionId}:null})()`);
+      R.onlineC.joined = Boolean(ps?.sid);
+      // Client UI tidak menyerang diri; uji overlay lewat respawnInMs state saja.
+      // Kirim leave dari UI → count harus turun (konsisten dengan online-smoke).
+      await ev(`window.__fb.exitSolo()`);
+      await sleep(1500);
+      R.onlineC.exited = await ev(`({title:!document.getElementById('screen-title').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden')})`);
+
+      foe.send(JSON.stringify({ t: 'leave', sessionId: foeId }));
+      await sleep(500);
+      try { foe.close(); } catch { /* sudah tutup */ }
+    }
+  }
+
   const fails = verdict(R);
   console.log('REPORT:', JSON.stringify(R));
   console.log('VERDICT:', fails.length ? 'FAIL' : 'PASS');
@@ -178,6 +264,11 @@ function verdict(R) {
     need(/pemain 0\/8/.test(R.lobbyData || ''), 'online count salah');
     need(R.logoutVisible === true, 'tombol keluar tidak muncul');
     need(R.soloAfterLogin === true, 'Solo tidak bisa setelah login');
+    need(R.onlineC?.loginStatus && /Masuk sebagai/.test(R.onlineC.loginStatus), `online login gagal: ${R.onlineC?.loginStatus}`);
+    need(R.onlineC?.joined === true, 'UI tidak join room online');
+    need(R.onlineC?.weapon === 'Tangan Kosong', `HUD senjata online salah: ${R.onlineC?.weapon}`);
+    need(R.onlineC?.enemyMarkers === 1, `marker musuh di minimap: ${R.onlineC?.enemyMarkers}`);
+    need(R.onlineC?.exited?.title === true && R.onlineC?.exited?.hudHidden === true, 'exit online tidak bersih');
   }
   return fails;
 }

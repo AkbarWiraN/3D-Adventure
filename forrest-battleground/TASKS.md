@@ -73,7 +73,13 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
 ---
 
 ## FASE 2 — Solo combat + register/login/lobby/leaderboard REST nyata
-_(IN PROGRESS — browser QA nyata LULUS: Chrome headless + WebGL SwiftShader, `server/tests/browser-smoke.mjs` → VERDICT PASS)_
+**SELESAI** — DoD Fase 2 terpenuhi; diverifikasi ulang penuh 2026-11-05:
+- `npm test` → unit 42/42; `server npm test` → 32/32
+- `server/tests/browser-smoke.mjs` → VERDICT PASS (solo loot→5 hit→death→respawn→exit leak-free; register/login→lobby→leaderboard→online count)
+- `server/tests/online-smoke.mjs` → VERDICT PASS
+- `npm run build:pages` → 37 file 2.07 MB audit lolos
+- backend produksi systemd aktif (`forest-battleground.service`), REST/WSS publik via https://api-be.bssn.biz.id
+- PENDING_MANUAL (HP asli/multitouch/notch) tetap di bawah — tidak menghalangi DoD, dituntaskan Fase 4
 
 Terverifikasi di browser sungguhan (bukan klaim):
 - Solo guest: loot POI → pedang → 5 hit valid (100→80→60→40→20→0) → kill feed "Bot dikalahkan"

@@ -3,7 +3,7 @@
 // PURE dari I/O (dibungkus gateway) supaya bisa diuji headless.
 import { getWorld } from '../../../src/shared/world.js';
 import { buildColliderGrid, resolveMove, clampToWorld, groundY } from '../../../src/shared/movement.js';
-import { PLAYER, WEAPONS, LOOT, COMBAT, NETWORK } from '../../../src/shared/constants.js';
+import { PLAYER, WEAPONS, LOOT, COMBAT, NETWORK, SPAWN } from '../../../src/shared/constants.js';
 import { makeRng } from '../../../src/shared/rng.js';
 import { writeKill } from '../persistence/leaderboardRepo.js';
 
@@ -45,6 +45,7 @@ export class Room {
     this.grid = buildColliderGrid(this.world.colliders);
     this.players = new Map(); // sessionId -> state
     this.loot = new Map();    // lootId -> {id,type,x,z,ammo}
+    this.respawns = new Map(); // static lootId -> respawnAt (ms)
     this.tick = 0;
     this.lastTickAt = 0;
     this.lastSnapshotAt = 0;
@@ -58,6 +59,35 @@ export class Room {
     for (const p of this.world.loot) {
       const type = ['bow', 'sword', 'arrows'][(p.id.length + p.x | 0) % 3];
       this.loot.set(p.id, { id: p.id, type, x: p.x, z: p.z });
+    }
+  }
+
+  /**
+   * Hapus loot dari tanah DAN jadwalkan respawn 45-90 s (prompt.md §1.2).
+   * Statis: id yang sama kembali di titik yang sama. Drop pemain: TIDAK
+   * direspawn (itu item bebas, tidak boleh menghilang dari tangan pemain lain
+   * yang sudah memungutnya) — bedanya di sini.
+   */
+  _takeLoot(id) {
+    const l = this.loot.get(id);
+    if (!l) return;
+    this.loot.delete(id);
+    if (this.world.loot.some((p) => p.id === id)) {
+      this.respawns.set(id, now() + LOOT.RESPAWN_MIN_MS + Math.floor(rand() * (LOOT.RESPAWN_MAX_MS - LOOT.RESPAWN_MIN_MS)));
+    }
+  }
+
+  /** Respawn loot terjadwal (dipanggil tiap tick). */
+  _respawnLoot(t) {
+    if (!this.respawns.size) return;
+    for (const [id, at] of this.respawns) {
+      if (t < at) continue;
+      this.respawns.delete(id);
+      const spot = this.world.loot.find((p) => p.id === id);
+      if (!spot || this.loot.has(id)) continue;
+      const type = ['bow', 'sword', 'arrows'][(id.length + spot.x | 0) % 3];
+      this.loot.set(id, { id, type, x: spot.x, z: spot.z });
+      this.onEvent('loot_respawn', { id, type, x: spot.x, z: spot.z });
     }
   }
 
@@ -88,24 +118,32 @@ export class Room {
     return state;
   }
 
-  /** Pilih spawn jauh dari pemain lain bila memungkinkan (prompt Fase 3 butir 4). */
+  /**
+   * Pilih spawn AMAN: usahakan >= SPAWN.MIN_ENEMY_DISTANCE (30 m) dari pemain lain.
+   * prompt.md §1.2 "Safe spawn:usahakan >= 30 m dari musuh; fallback teraman".
+   * 24 sampel acak saja kadang habis sebelum menemukan titik > 30 m (terukur:
+   * 1 dari 8 sampel < 100 m), jadi pool diacak lalu diurutkan pakai jarak minimum.
+   */
   _pickSpawn(avoid = null) {
     const others = [...this.players.values()];
     const pool = avoid ? [avoid] : this.world.spawns;
-    let best = pool[0];
-    let bestScore = -Infinity;
-    for (let i = 0; i < 24; i++) {
-      const c = pool[Math.floor(rand() * pool.length)];
-      let minDist = Infinity;
+    if (!pool.length) throw new Error('tidak ada kandidat spawn');
+    const minDist = (c) => {
+      let m = Infinity;
       for (const o of others) {
         const d = Math.hypot(o.x - c.x, o.z - c.z);
-        if (d < minDist) minDist = d;
+        if (d < m) m = d;
       }
-      // Kandidat yang lebih jauh dari musuh selalu menang; fallback tetap aman.
-      if (minDist > bestScore) { bestScore = minDist; best = c; }
-      if (minDist > 30) break;
-    }
-    return best;
+      return others.length ? m : Infinity;
+    };
+    // Urutkan kandidat acak dari terjauh; ambil yang pertama >= 30 m (atau
+    // yang terjauh sebagai fallback teraman).
+    const ranked = [...pool]
+      .sort(() => rand() - 0.5)
+      .slice(0, 48)
+      .sort((a, b) => minDist(b) - minDist(a));
+    const best = ranked[0];
+    return minDist(best) >= SPAWN.MIN_ENEMY_DISTANCE ? best : ranked[0];
   }
 
   leave(sessionId, reason = 'leave') {
@@ -149,6 +187,7 @@ export class Room {
   step(dtSec = TICK_MS / 1000) {
     this.tick++;
     const t = now();
+    this._respawnLoot(t);
     for (const p of this.players.values()) {
       if (p.dead) {
         if (t >= p.respawnAt) this._respawn(p);
@@ -285,7 +324,7 @@ export class Room {
       const bow = p.inventory.find((i) => i && i.type === 'bow');
       if (!bow) return { ok: false, code: 'BOW_REQUIRED' };
       bow.ammo = Math.min(30, (bow.ammo ?? 0) + 10);
-      this.loot.delete(best.id);
+      this._takeLoot(best.id);
       this.onEvent('loot_taken', { id: best.id, by: p.sessionId, ammo: bow.ammo });
       return { ok: true, ammo: bow.ammo };
     }
@@ -293,7 +332,7 @@ export class Room {
     if (slot < 0) return { ok: false, code: 'FULL' };
     p.inventory[slot] = { type: best.type, ammo: best.type === 'bow' ? LOOT.BOW_START_ARROWS : null };
     p.slot = slot;
-    this.loot.delete(best.id);
+    this._takeLoot(best.id);
     this.onEvent('loot_taken', { id: best.id, by: p.sessionId, slot });
     return { ok: true, slot, type: best.type };
   }
