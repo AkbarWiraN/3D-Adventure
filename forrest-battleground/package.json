@@ -1,0 +1,16 @@
+{
+  "name": "forest-battleground",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Forest Battleground — Ancient Survival (Three.js ESM, tanpa bundler)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js",
+    "serve": "node scripts/serve.mjs",
+    "build:pages": "node scripts/build-pages.mjs",
+    "audit:dist": "node scripts/audit-dist.mjs"
+  }
+}

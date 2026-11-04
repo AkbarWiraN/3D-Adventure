@@ -1,10 +1,11 @@
-name: Deploy GHOSTDASH ke GitHub Pages
+name: Deploy GHOSTDASH + Forest Battleground ke GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'ghostdash/**'
+      - 'forrest-battleground/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -26,16 +27,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # File internal tidak ikut terbit (CHECKLIST/PROMPT/tests/node_modules)
-      - name: Bersihkan file internal
+      # 1. GHOSTDASH = root situs
+      - name: Siapkan GHOSTDASH (root)
         run: |
           cd ghostdash
           rm -f CHECKLIST.md PROMPT.md controls-check.js phase2-check.js
           rm -rf docs .git
+          cd ..
+          cp -r ghostdash _site
+
+      # 2. Forest Battleground = /forrest-battleground/ (whitelist ketat)
+      - name: Build Forest Battleground
+        run: |
+          cd forrest-battleground
+          node scripts/build-pages.mjs
+          node scripts/audit-dist.mjs
+          # Gerbang kedua: tidak boleh ada backend/env/db/markdown di dist
+          ! find dist -name '.env*' -o -name '*.sqlite*' -o -name '*.md' | grep -q .
+          cp -r dist ../_site/forrest-battleground
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ghostdash
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

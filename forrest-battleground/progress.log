@@ -1,0 +1,62 @@
+# PROGRESS LOG — Forest Battleground
+
+Catatan kronologis pengerjaan. Ditulis oleh builder (chat & cronjob).
+Format: `[YYYY-MM-DD HH:MM WIB] [FASE] [tag] pesan — bukti`
+
+---
+
+## 2026-11-04
+
+- `[F1][Ops]` Baseline VPS tercatat: Ubuntu 24.04, kernel 6.8, 2 vCPU, RAM 3.66 GB (available 2.5 GB), disk 69 GB (20 GB used). Port 80/443/3000/3306 kosong. apache2 + mariadb inactive & disabled atas instruksi Ken.
+- `[F1][Ops]` Node 24.11.0 dipasang di `/opt/node24` — terpisah dari Node v22.23.3 milik Hermes (tidak disentuh). Bukti: `/opt/node24/bin/node --version` → v24.11.0.
+- `[F1][BE]` `server/package.json` dibuat, versi dipin: fastify 5.6.2, @fastify/websocket 11.2.0, @fastify/cors 11.0.1, better-sqlite3 12.4.1, argon2 0.44.0.
+- `[F1][BE]` `npm install` sukses (105 paket). Bukti: better-sqlite3 create+insert+select OK; argon2 hash+verify OK di Node 24.
+- `[F1][BE]` `server/src/config.js` — validasi env + fail-fast production (Origin wajib, wildcard/null ditolak, AUTH_SECRET wajib).
+- `[F1][BE]` `server/.env.example` dibuat tanpa secret sungguhan.
+- `[F1][BE]` `server/migrations/001_init.sql` — schema users / player_stats / elimination_events + index rank, sesuai prompt.md §4.6.
+- `[F1][BE]` `server/src/persistence/db.js` — SQLite WAL, foreign_keys ON, busy_timeout 5000, synchronous NORMAL.
+- `[F1][BE]` `server/src/persistence/migrate.js` — runner versioned idempotent, satu transaksi per migrasi.
+- `[F1][QA]` TASKS.md diisi checklist Fase 1 lengkap (sumber kebenaran `prompt.md`).
+- `[F1][Ops]` Cronjob `forest-battleground-builder` (job_id `c2937537a297`) dibuat: tiap 20 menit, deliver `local` (tidak mengirim ke Telegram).
+
+### Sesi verifikasi backend Fase 1 (model cadangan aktif)
+
+- `[F1][BE]` `server/src/security/origin.js` — origin guard EXACT: `Vary: Origin` selalu, tanpa ACAO saat ditolak, `/healthz` dikecualikan untuk monitoring loopback.
+- `[F1][BE]` `server/src/http/routes/system.js` — `/api/v1/health` + `/api/v1/config/public` dengan JSON schema `additionalProperties:false`; `supportedFeatures` hanya fitur yang benar-benar ada (tanpa klaim palsu).
+- `[F1][BE]` `server/src/app.js` — Fastify: redaksi log (authorization/cookie/password/token), `genReqId` UUID, `bodyLimit` 16 KiB, CORS satu sumber kebijakan (origin function, bukan wildcard), error handler tanpa stacktrace.
+- `[F1][BE]` `server/src/server.js` — migrasi saat boot (fail-fast bila gagal), bind `127.0.0.1:3000`, shutdown rapi + WAL checkpoint.
+- `[F1][QA]` `server/tests/http.test.js` — 10 test lewat **port HTTP nyata**: Origin sah 200+ACAO+Vary, preflight 204/200 tanpa wildcard header, origin asing/null/localhost/missing → 403 tanpa ACAO, `/healthz` bebas origin, kontrak `config/public` + pemeriksaan tidak bocor field sensitif, route tak dikenal 404.
+  Bukti: `node --test tests/http.test.js` → **10 passed / 0 failed**.
+- `[F1][BE]` Migrasi dijalankan nyata. Bukti: `npm run db:migrate` → `[migrate] 001_init: applied`; tabel `elimination_events player_stats schema_migrations users`; `journal_mode=wal`, `foreign_keys=1`.
+- `[F1][BE]` Server dijalankan nyata di loopback. Bukti `ss`: `LISTEN 127.0.0.1:3000`.
+  `curl` Origin sah → `200` + `access-control-allow-origin: https://akbarwiran.github.io` + `vary: Origin`, body `{"status":"ok","version":"0.1.0",...}`.
+  Tanpa Origin → `403`. Origin asing → `403`. `/healthz` → `{"ok":true,"db":true}`.
+  `/api/v1/config/public` → `{"protocolVersion":1,"worldVersion":"forest-v1","mapId":"forest","roomHardCap":8,...}`.
+- `[F1][Ops]` Fallback model di-set di `~/.hermes/config.yaml`: `fallback_providers` = `Oao.ai.id / gpt-6-astra` (base_url + key_env sama dengan primary). Verifikasi `hermes fallback` menampilkan 1 entri chain. Backup config: `config.yaml.bak.*` (config di-restore-able).
+- `[F1][Repo]` `.env.example` ada; lockfile `package-lock.json` ada.
+- `[F1][BE]` Catatan: `npm run test` diubah ke `node --test tests/*.test.js` (pola dir tidak valid di Node 24).
+
+**Status:** backend Fase 1 inti SELESAI + terbukti. Berikutnya: systemd unit, Nginx/TLS `api-be.bssn.biz.id`, lalu frontend (engine hutan + kontrol).
+
+### Nginx + TLS + systemd (api-be.bssn.biz.id live)
+
+- `[F1][Ops]` `.env` produksi dibuat (chmod 600, 14 baris). `AUTH_SECRET` = `openssl rand -hex 32` — nilai TIDAK pernah dicetak/di-log. Data dir `/var/lib/forest-battleground` (700, owner ubuntu).
+- `[F1][Ops]` Nginx 1.24 terpasang. Site `api-be.bssn.biz.id` di `/etc/nginx/sites-available/` + symlink ke `sites-enabled/`.
+  Keputusan penting: **CORS tidak diatur di Nginx** — satu sumber kebijakan tetap di Fastify, supaya tidak ada header duplikat (prompt.md §4.3 butir 2).
+  Sudah disiapkan `map $http_upgrade $fb_connection_upgrade` + `proxy_set_header Upgrade/Connection` untuk WSS Fase 3.
+  `/healthz` di-deny di level Nginx (`allow 127.0.0.1; deny all;`) — dilindungi dua lapis.
+  `client_max_body_size 64k` (backend menolak >16 KiB).
+- `[F1][Ops]` TLS Let's Encrypt diterbitkan via HTTP-01 webroot. Bukti: `certbot certonly --webroot` → "Successfully received certificate", saved `/etc/letsencrypt/live/api-be.bssn.biz.id/fullchain.pem`, expires 2027-02-02. Renewal otomatis terjadwal.
+  Catatan: `http2 on;` ditolak nginx 1.24 (`unknown directive`) → dihapus; HTTP/2 tetap aktif via negosiasi CF & ALPN.
+- `[F1][Ops]` Block 443 `ssl` + redirect 301 dari 80 (kecuali `/.well-known/acme-challenge/` yang tetap terbuka untuk renewal). HSTS `max-age=31536000; includeSubDomains`, `nosniff`, `Referrer-Policy same-origin`.
+- `[F1][Ops]` systemd unit `forest-battleground.service` (User=ubuntu, nonroot) + `enable --now`. Hardening: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=full`, `ProtectHome=read-only`, `ReadWritePaths=/var/lib/forest-battleground`, `LimitNOFILE=8192`, `MemoryMax=1500M`.
+  Bukti: `systemctl is-active` → `active`; `systemctl is-enabled` → `enabled`; log `Server listening at http://127.0.0.1:3000`; migrasi kedua kali → `fresh:[]` (idempotensi terbukti).
+  Insiden kecil: server manual dari sesi sebelumnya masih pegang port 3000 (`EADDRINUSE`) → PID dibunuh, restart bersih.
+- `[F1][Ops]` **VERIFIKASI PUBLIK (end-to-end lewat Cloudflare):**
+  - `https://api-be.bssn.biz.id/api/v1/health` + Origin sah → **HTTP/2 200**, `access-control-allow-origin: https://akbarwiran.github.io`, `vary: Origin`, `strict-transport-security` ada, `cf-ray: ...-SIN`.
+  - `https://api-be.bssn.biz.id/api/v1/config/public` → `{"protocolVersion":1,"worldVersion":"forest-v1","mapId":"forest","roomHardCap":8,...}`
+  - Tanpa Origin → **403**. Origin asing → **403**. `/healthz` publik → **403**.
+  - `http://` → **301** ke `https://`.
+  - Port Node **tidak** terekspos publik — `ss` menunjukkan `LISTEN 127.0.0.1:3000` saja.
+
+**Status Fase 1:** backend + deployment SELESAI dan terbukti live di `api-be.bssn.biz.id`. Sisa Fase 1: frontend (engine hutan + kontrol + spawn/minimap/settings), lalu `build:pages` whitelist + audit dist.

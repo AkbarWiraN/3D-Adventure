@@ -1,0 +1,30 @@
+# --- Node / backend ---
+node_modules/
+server/node_modules/
+server/.env
+server/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# --- Frontend build output ---
+dist/
+
+# --- Secrets & lokal ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+!progress.log
+
+# --- Scratch ---
+*.tmp
+*.bak
+*.bak.*

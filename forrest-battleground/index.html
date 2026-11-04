@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover: wajib agar safe-area (notch) bisa dipakai di mobile portrait -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1410">
+<meta name="description" content="Forest Battleground: Ancient Survival — game bertahan hidup di hutan purba.">
+<title>Forest Battleground — Ancient Survival</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Canvas WebGL -->
+  <canvas id="gl" aria-label="Area permainan"></canvas>
+
+  <!-- ===================== Fatal error (WebGL gagal) ===================== -->
+  <div id="fatal" class="overlay hidden" role="alert">
+    <div class="panel">
+      <h2>Gagal Menjalankan Game</h2>
+      <p id="fatal-msg">Browser tidak mendukung WebGL.</p>
+      <p class="dim">Coba perbarui browser, aktifkan akselerasi perangkat keras, atau gunakan perangkat lain.</p>
+      <button id="fatal-retry" class="btn">Coba Lagi</button>
+    </div>
+  </div>
+
+  <!-- ===================== Layar Judul / Lobby ===================== -->
+  <div id="screen-title" class="overlay">
+    <div class="panel wide">
+      <h1 class="game-title">FOREST BATTLEGROUND</h1>
+      <p class="subtitle">Ancient Survival</p>
+      <p class="dim small">Hutan purba seluas 1 km². Cari perlengkapan, bertahan hidup, jangan mati.</p>
+
+      <div class="menu">
+        <button id="btn-solo" class="btn primary">Main Solo</button>
+        <button id="btn-online" class="btn" disabled title="Belum tersedia di Fase 1">Main Online</button>
+        <button id="btn-settings" class="btn">Pengaturan</button>
+      </div>
+      <p id="online-note" class="dim tiny">Online belum tersedia — akan aktif di Fase 3.</p>
+    </div>
+  </div>
+
+  <!-- ===================== Pengaturan ===================== -->
+  <div id="screen-settings" class="overlay hidden">
+    <div class="panel wide">
+      <h3>Pengaturan</h3>
+
+      <label class="field">
+        <span>Alamat Backend</span>
+        <input id="set-backend" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+               placeholder="https://api-be.bssn.biz.id">
+      </label>
+      <p class="dim tiny">Kosongkan untuk memakai server resmi. Hanya HTTPS yang diizinkan saat game dibuka lewat HTTPS.</p>
+      <div class="row">
+        <button id="btn-test-conn" class="btn small">Uji Koneksi</button>
+        <span id="conn-status" class="dim small">Belum diuji</span>
+      </div>
+      <p id="custom-warn" class="warn tiny hidden">⚠ Server kustom: jangan masukkan kata sandi ke server yang tidak Anda percayai.</p>
+
+      <hr>
+
+      <label class="field">
+        <span>Kualitas Grafis</span>
+        <select id="set-quality">
+          <option value="auto">Otomatis</option>
+          <option value="low">Rendah</option>
+          <option value="medium">Sedang</option>
+          <option value="high">Tinggi</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Sensitivitas Kamera <b id="sens-val">1.0</b></span>
+        <input id="set-sens" type="range" min="0.3" max="3" step="0.1" value="1">
+      </label>
+
+      <label class="field">
+        <span>Balik Sumbu Y <input id="set-inverty" type="checkbox"></span>
+      </label>
+
+      <p class="dim tiny">Hanya preferensi non-rahasia yang disimpan di perangkat ini.</p>
+
+      <div class="row end">
+        <button id="btn-settings-back" class="btn">Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Pause ===================== -->
+  <div id="screen-pause" class="overlay hidden">
+    <div class="panel">
+      <h3>Jeda</h3>
+      <div class="menu">
+        <button id="btn-resume" class="btn primary">Lanjut Main</button>
+        <button id="btn-pause-settings" class="btn">Pengaturan</button>
+        <button id="btn-pause-exit" class="btn danger">Keluar ke Lobby</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Peta penuh ===================== -->
+  <div id="screen-map" class="overlay hidden">
+    <div class="panel full">
+      <div class="row between">
+        <h3>Peta Hutan</h3>
+        <button id="btn-map-close" class="btn small">Tutup (M)</button>
+      </div>
+      <canvas id="bigmap" width="720" height="720"></canvas>
+      <p class="dim tiny">Cubit/scroll untuk zoom · geser untuk menggeser peta</p>
+    </div>
+  </div>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <!-- Minimap kiri atas -->
+    <div id="minimap-wrap">
+      <canvas id="minimap" width="180" height="180"></canvas>
+      <div id="minimap-label" class="dim tiny">Hutan</div>
+    </div>
+
+    <!-- HP + senjata (kiri bawah desktop, atas-tengah mobile) -->
+    <div id="status-cluster">
+      <div id="hp-bar"><div id="hp-fill"></div><span id="hp-text">100</span></div>
+      <div id="weapon-info">
+        <span id="weapon-name">Tangan Kosong</span>
+        <span id="ammo-info" class="hidden">×<b id="ammo-count">0</b></span>
+        <span id="cooldown-dot" class="dim"></span>
+      </div>
+    </div>
+
+    <!-- Kill feed -->
+    <div id="killfeed"></div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    <!-- Crosshair -->
+    <div id="crosshair" class="hidden"></div>
+
+    <!-- Prompt interaksi (E / AMBIL) -->
+    <div id="prompt" class="hidden"><b id="prompt-key">E</b> <span id="prompt-text">Ambil</span></div>
+
+    <!-- FPS meter (debug) -->
+    <div id="fps" class="hidden"></div>
+
+    <!-- ===== Kontrol mobile (portrait) ===== -->
+    <div id="mobile-controls" class="hidden">
+      <div id="joystick-zone" aria-label="Joystick gerak">
+        <div id="joystick-base"><div id="joystick-knob"></div></div>
+      </div>
+      <div id="look-zone" aria-label="Area lihat"></div>
+      <div id="mobile-buttons">
+        <button id="mb-attack" class="mbtn attack" aria-label="Serang">SERANG</button>
+        <button id="mb-aim" class="mbtn small" aria-label="Bidik">BIDIK</button>
+        <button id="mb-jump" class="mbtn small" aria-label="Loncat">LONCAT</button>
+        <button id="mb-sprint" class="mbtn small" aria-label="Lari">LARI</button>
+        <button id="mb-prone" class="mbtn small" aria-label="Tiarap">TIARAP</button>
+        <button id="mb-interact" class="mbtn small hidden" aria-label="Ambil">AMBIL</button>
+      </div>
+      <div id="mobile-topright">
+        <button id="mb-map" class="mbtn tiny" aria-label="Peta">PETA</button>
+        <button id="mb-pause" class="mbtn tiny" aria-label="Jeda">❚❚</button>
+      </div>
+    </div>
+
+    <div id="desktop-hint" class="dim tiny">
+      WASD gerak · Shift lari · Space loncat · Z tiarap · klik serang · klik-kanan bidik · M peta · Esc jeda
+    </div>
+  </div>
+
+  <!-- ===================== Overlay pemuatan ===================== -->
+  <div id="loading" class="overlay">
+    <div class="panel">
+      <h3>Menyiapkan Hutan…</h3>
+      <div class="bar"><div id="loading-fill"></div></div>
+      <p id="loading-text" class="dim small">Memuat mesin 3D</p>
+    </div>
+  </div>
+
+  <!-- Mobile wajib portrait (prompt.md §3.2) — minta user memutar perangkat -->
+  <div id="rotate-hint">
+    <div>
+      <h3>Putar Perangkat ke Tegak</h3>
+      <p class="dim small">Game ini dimainkan dalam mode portrait di ponsel.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js di-vendor lokal: tidak bergantung CDN, tetap jalan offline (prompt.md §2.1) -->
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

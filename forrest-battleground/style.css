@@ -1,0 +1,264 @@
+/* ============================================================
+   Forest Battleground — Ancient Survival
+   Style: HUD + overlay + kontrol mobile portrait (safe-area aware)
+   ============================================================ */
+
+:root {
+  --bg: #100c09;
+  --panel: #1a1410;
+  --panel-2: #241b15;
+  --line: #3a2c22;
+  --text: #e8ddd0;
+  --dim: #a3917f;
+  --accent: #d9843f;
+  --accent-2: #7fb069;
+  --danger: #c4453a;
+  --warn: #d9a441;
+  --hud-shadow: 0 2px 8px rgba(0, 0, 0, .7);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+}
+
+#app { position: fixed; inset: 0; }
+
+#gl { display: block; width: 100%; height: 100%; touch-action: none; }
+
+.hidden { display: none !important; }
+
+/* ------------------------------------------------------- overlay & panel */
+.overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(26, 20, 16, .82), rgba(10, 8, 6, .95));
+  padding: calc(12px + var(--safe-t)) calc(12px + var(--safe-r)) calc(12px + var(--safe-b)) calc(12px + var(--safe-l));
+  z-index: 20;
+  overflow-y: auto;
+}
+
+.panel {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 460px; width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+}
+.panel.wide { max-width: 560px; }
+.panel.full { max-width: 860px; }
+
+h1, h2, h3 { margin: 0 0 10px; font-weight: 650; letter-spacing: .3px; }
+h3 { font-size: 1.15rem; }
+
+.game-title {
+  font-size: clamp(1.5rem, 6vw, 2.4rem);
+  letter-spacing: .12em;
+  margin-bottom: 2px;
+  color: var(--accent);
+  text-shadow: 0 2px 12px rgba(217, 132, 63, .3);
+  text-align: center;
+}
+.subtitle { text-align: center; margin: 0 0 10px; color: var(--dim); letter-spacing: .3em; font-size: .8rem; text-transform: uppercase; }
+
+.dim { color: var(--dim); }
+.tiny { font-size: .74rem; line-height: 1.45; }
+.small { font-size: .88rem; }
+.warn { color: var(--warn); }
+
+/* ------------------------------------------------------------- controls */
+.menu { display: flex; flex-direction: column; gap: 9px; margin: 16px 0 10px; }
+
+.btn {
+  appearance: none; cursor: pointer;
+  background: #2b2119;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 12px 16px;
+  font-size: 1rem; font-family: inherit; font-weight: 550;
+  transition: background .14s, border-color .14s, transform .05s;
+  min-height: 44px; /* target sentuh nyaman */
+}
+.btn:hover:not(:disabled) { background: #382a20; border-color: #4c3a2c; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: #e59a5c; color: #1a1209; font-weight: 650; }
+.btn.primary:hover:not(:disabled) { background: #e5904a; }
+.btn.danger { border-color: #6d2b25; color: #e88a80; }
+.btn.danger:hover { background: #3a1f1b; }
+.btn.small { padding: 8px 12px; font-size: .85rem; min-height: 38px; }
+.btn.tiny { padding: 6px 9px; font-size: .74rem; min-height: 34px; }
+
+.field { display: block; margin-bottom: 14px; }
+.field > span { display: block; font-size: .84rem; color: var(--dim); margin-bottom: 5px; }
+.field input[type=url], .field select {
+  width: 100%; padding: 10px; background: #191310; color: var(--text);
+  border: 1px solid var(--line); border-radius: 7px; font-size: .95rem; font-family: inherit;
+}
+.field input[type=range] { width: 100%; accent-color: var(--accent); }
+.field input[type=checkbox] { accent-color: var(--accent); transform: scale(1.25); }
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row.end { justify-content: flex-end; margin-top: 8px; }
+.row.between { justify-content: space-between; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+
+.bar { height: 7px; background: #191310; border-radius: 4px; overflow: hidden; margin: 10px 0 8px; }
+#loading-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .2s; }
+
+/* ------------------------------------------------------------------- HUD */
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+#hud button, #hud input { pointer-events: auto; }
+
+/* Minimap kiri atas (aman dari notch) */
+#minimap-wrap {
+  position: absolute;
+  top: calc(10px + var(--safe-t)); left: calc(10px + var(--safe-l));
+  width: 150px; height: 150px;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: rgba(12, 9, 7, .72);
+  box-shadow: var(--hud-shadow);
+}
+#minimap { display: block; width: 100%; height: 100%; }
+#minimap-label { position: absolute; bottom: 3px; left: 6px; text-shadow: var(--hud-shadow); }
+
+/* HP + senjata */
+#status-cluster {
+  position: absolute;
+  bottom: calc(14px + var(--safe-b)); left: calc(14px + var(--safe-l));
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 190px;
+}
+#hp-bar {
+  position: relative; height: 22px; border-radius: 6px; overflow: hidden;
+  background: rgba(12, 9, 7, .8); border: 1px solid var(--line); box-shadow: var(--hud-shadow);
+}
+#hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #a83a30, #d4564a); transition: width .18s; }
+#hp-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: .8rem; font-weight: 650; text-shadow: 0 1px 3px #000; }
+#weapon-info {
+  display: flex; gap: 8px; align-items: center; font-size: .82rem;
+  background: rgba(12, 9, 7, .72); border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 9px; box-shadow: var(--hud-shadow);
+}
+#cooldown-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+#cooldown-dot.ready { background: var(--accent-2); }
+#cooldown-dot.cooling { background: var(--danger); }
+
+#killfeed { position: absolute; top: calc(10px + var(--safe-t)); right: calc(10px + var(--safe-r)); display: flex; flex-direction: column; gap: 4px; align-items: flex-end; max-width: 62vw; }
+.kf-line {
+  background: rgba(12, 9, 7, .8); border: 1px solid var(--line); border-left: 3px solid var(--danger);
+  border-radius: 5px; padding: 4px 9px; font-size: .78rem; box-shadow: var(--hud-shadow);
+  animation: kf-in .18s ease-out;
+}
+@keyframes kf-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+
+#toast {
+  position: absolute; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 5px; align-items: center; max-width: 84vw;
+}
+.toast-item {
+  background: rgba(12, 9, 7, .86); border: 1px solid var(--line); border-radius: 7px;
+  padding: 6px 13px; font-size: .84rem; box-shadow: var(--hud-shadow); text-align: center;
+  animation: toast-in .18s ease-out;
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+#crosshair {
+  position: absolute; top: 50%; left: 50%; width: 22px; height: 22px;
+  margin: -11px 0 0 -11px; pointer-events: none;
+  border: 2px solid rgba(232, 221, 208, .85); border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(0, 0, 0, .4);
+}
+#crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; background: var(--accent); border-radius: 50%; }
+
+#prompt {
+  position: absolute; bottom: 24%; left: 50%; transform: translateX(-50%);
+  background: rgba(12, 9, 7, .85); border: 1px solid var(--line); border-radius: 7px;
+  padding: 7px 14px; font-size: .9rem; box-shadow: var(--hud-shadow);
+}
+#prompt b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-right: 5px; background: var(--accent); color: #1a1209; border-radius: 4px; font-size: .74rem; }
+
+#fps { position: absolute; bottom: calc(6px + var(--safe-b)); right: calc(8px + var(--safe-r)); font-size: .7rem; font-family: ui-monospace, monospace; color: var(--dim); text-shadow: var(--hud-shadow); }
+
+#desktop-hint { position: absolute; bottom: calc(6px + var(--safe-b)); left: 50%; transform: translateX(-50%); text-shadow: var(--hud-shadow); white-space: nowrap; }
+
+#bigmap { display: block; width: 100%; height: auto; max-height: 62vh; background: #0c0a08; border: 1px solid var(--line); border-radius: 9px; touch-action: none; cursor: grab; }
+#bigmap:active { cursor: grabbing; }
+
+/* ------------------------------------------------ kontrol mobile portrait */
+#mobile-controls { position: absolute; inset: 0; pointer-events: none; }
+#mobile-controls > * { pointer-events: auto; }
+
+#joystick-zone {
+  position: absolute; left: 0; bottom: 0; width: 46%; height: 44%;
+  display: grid; place-items: center;
+}
+#joystick-base {
+  width: 128px; height: 128px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 132, 63, .16), rgba(12, 9, 7, .34));
+  border: 2px solid rgba(232, 221, 208, .28);
+  position: relative; touch-action: none;
+}
+#joystick-knob {
+  position: absolute; top: 50%; left: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+  border-radius: 50%; background: rgba(232, 221, 208, .3); border: 2px solid rgba(232, 221, 208, .5);
+}
+
+#look-zone { position: absolute; right: 0; top: 0; width: 54%; height: 62%; touch-action: none; }
+
+#mobile-buttons {
+  position: absolute; right: calc(10px + var(--safe-r)); bottom: calc(10px + var(--safe-b));
+  display: grid; grid-template-columns: repeat(3, auto); gap: 8px; align-items: end;
+}
+.mbtn {
+  appearance: none; font-family: inherit; font-weight: 650; color: var(--text);
+  background: rgba(26, 20, 16, .82); border: 2px solid rgba(232, 221, 208, .3);
+  border-radius: 50%; width: 66px; height: 66px; font-size: .68rem;
+  display: grid; place-items: center; touch-action: none;
+  box-shadow: var(--hud-shadow);
+}
+.mbtn.attack { width: 84px; height: 84px; font-size: .78rem; background: rgba(196, 69, 58, .3); border-color: rgba(232, 138, 128, .55); }
+.mbtn.small { width: 56px; height: 56px; font-size: .62rem; }
+.mbtn:active, .mbtn.on { background: rgba(217, 132, 63, .4); border-color: var(--accent); }
+
+#mobile-topright { position: absolute; top: calc(10px + var(--safe-t)); right: calc(10px + var(--safe-r)); display: flex; gap: 6px; }
+.mbtn.tiny { width: 44px; height: 44px; font-size: .6rem; border-radius: 10px; }
+
+/* --------------------------------------------------------- responsif */
+/* Mobile portrait: sembunyikan hint desktop, posisikan HUD aman */
+@media (max-width: 820px) and (orientation: portrait) {
+  #minimap-wrap { width: 108px; height: 108px; }
+  #status-cluster { min-width: 150px; bottom: calc(190px + var(--safe-b)); left: calc(10px + var(--safe-l)); }
+  #desktop-hint { display: none !important; }
+  #prompt { bottom: 34%; }
+  .panel { padding: 16px; }
+}
+
+/* Desktop / landscape: kontrol sentuh tidak muncul */
+@media (hover: hover) and (pointer: fine) {
+  #mobile-controls { display: none !important; }
+}
+
+/* Rotate hint untuk mobile landscape (spesifikasi: mobile WAJIB portrait) */
+#rotate-hint { position: absolute; inset: 0; display: none; place-items: center; background: var(--bg); z-index: 40; text-align: center; padding: 24px; }
+@media (max-width: 900px) and (orientation: landscape) and (hover: none) {
+  #rotate-hint { display: grid !important; }
+}
+
+/* Aksesibilitas: kurangi animasi */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
