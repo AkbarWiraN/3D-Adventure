@@ -60,3 +60,89 @@ Format: `[YYYY-MM-DD HH:MM WIB] [FASE] [tag] pesan — bukti`
   - Port Node **tidak** terekspos publik — `ss` menunjukkan `LISTEN 127.0.0.1:3000` saja.
 
 **Status Fase 1:** backend + deployment SELESAI dan terbukti live di `api-be.bssn.biz.id`. Sisa Fase 1: frontend (engine hutan + kontrol + spawn/minimap/settings), lalu `build:pages` whitelist + audit dist.
+
+────────────────────────────────────────────────────────
+[2026-11-04 22:35 WIB] FASE 1 — FRONTEND PLAYABLE + DEPLOY PUBLIK (BUKTI NYATA)
+
+Dikerjakan:
+- src/core/{gameLoop,session}.js — loop fixed-timestep 60 Hz + composition root sesi Solo
+- src/world/{terrainChunk,vegetation,buildings,lighting,worldManager}.js — streaming chunk,
+  vegetasi InstancedMesh, 14 rumah/10 POI, sun sore + fog, dispose resource
+- src/entities/{player,cameraRig}.js — karakter + kamera third-person + camera collision
+- src/input/input.js — keyboard/mouse + joystick kiri + drag-look kanan + reset pointercancel
+- src/ui/{hud,minimap,screens}.js — HUD diff-update, minimap 8 Hz + map overlay, semua layar
+- src/network/rest.js — klien REST + deteksi mixed-content + Test Connection
+- src/gameplay/spawn.js — spawn acak dari kandidat tervalidasi
+- src/storage/settings.js — localStorage NON-rahasia saja
+- src/main.js — composition root, tombol Online DISABLED + label jujur "segera"
+- scripts/{build-pages,audit-dist,serve}.mjs + package.json root (test/serve/build:pages/audit:dist)
+- .github/workflows/pages.yml — artifact gabungan: GHOSTDASH (root) + forrest-battleground/ (subpath)
+
+Bukti uji browser NYATA (bukan klaim):
+- Lokal http://127.0.0.1:8080/?debug=1 → boot OK, main Solo OK, 21 chunk, 203 draw call, 28.988 tris
+- Gerak maju (KeyW 2 s): posisi (306.59, 253.38) → (308.39, 250.31) — BERUBAH, 0 error konsol
+- Exit → Lobby → masuk lagi: chunksCreated tetap 21 (bukan 42) → dispose benar, tidak ada kebocoran
+- Mobile portrait 390x844: overflow-x 390 vs 390 (tidak ada scroll liar), kontrol sentuh tampil, 0 error
+- Simulasi subpath /forrest-battleground/: index/main/three/core semua 200, main Solo OK
+
+DIPUBLIKASIKAN:
+- https://akbarwiran.github.io/3D-Adventure/forrest-battleground/ → LIVE
+- Actions run 0bcdda6 : completed / SUCCESS
+- Verifikasi di domain publik: title tampil, WebGL OK, Solo jalan, 21 chunk, 203 draw call, 0 error
+- Audit dist: 32 file, 2.04 MB, TIDAK ADA server/.env/sqlite/markdown (gerbang ganda di CI)
+
+Backend (diuji dari origin sah):
+- GET https://api-be.bssn.biz.id/api/v1/health → 200 {"status":"ok","version":"0.1.0"}
+- GET /api/v1/config/public → protocolVersion 1, worldVersion forest-v1, mapId forest, roomHardCap 8
+- Tanpa Origin → 403 (guard bekerja)
+
+CATATAN MASALAH (jujur):
+- Latency health 1.74 s — tinggi. Dugaan: Cloudflare edge + request pertama (cold).
+  Perlu diukur berulang; kalau konsisten >500 ms, pertimbangkan DNS-only + cert LE di nginx.
+- FPS di headless Chrome = 4–8 karena SwiftShader (render perangkat lunak), BUKAN indikator
+  performa HP asli. Butuh uji di HP asli (status [M] PENDING_MANUAL).
+
+Rencana berikut:
+- Rapikan sisa checklist FE Fase 1 (LOD/culling terukur, settings lengkap, spawn >=40 tervalidasi tes)
+- Unit test tambahan: spawn deterministik + bounds + chunk
+- Lanjut Fase 2: register/login/lobby/leaderboard REST nyata
+
+────────────────────────────────────────────────────────
+[2026-11-04 22:50 WIB] KEPUTUSAN PERFORMA — CLOUDFLARE & UKURAN BUNDLE
+
+DATA PENGUKURAN NYATA (bukan asumsi):
+  Direct origin 43.173.6.81:443  → total 5.7 ms, TLS 4.3 ms  (3/3 konsisten)
+  Lewat Cloudflare IPv4          → total 576 ms, TLS 172 ms
+  Lewat Cloudflare (5 run)       → 1.03 s / 1.19 s / 1.25 s / 1.74 s / 4.10 s
+  cf-ray header                  → a55457f4ff1e35c8-LAX  (Los Angeles, bukan Jakarta!)
+  ping edge Cloudflare dari VPS  → 15 ms (edge dekat, tapi jalur proxy tetap mahal)
+
+KESIMPULAN: origin 5.7 ms, Cloudflare menambah ~570 ms - 4 s. Untuk game realtime
+(20 tick/s) ini merusak. VPS di Jakarta, pengguna di Indonesia, proxy malah ke LAX.
+
+KEPUTUSAN (diminta user: prioritas performa, bukan keamanan; game tidak dipublikasi luas):
+  api-be.bssn.biz.id  →  DNS only (grey cloud). Bukan Proxied.
+  Cert LE sudah terbit & valid s/d 2027-02-02 → https:// dan wss:// tetap sah tanpa CF.
+  Trade-off diterima: IP publik VPS terekspos. Ini sadar, bukan kelalaian.
+
+LANGKAH MANUAL DI DASHBOARD CF (butuh user, gratis):
+  1. DNS → record api-be → toggle oranye jadi ABU-ABU (DNS only)
+  2. Speed → Brotli ON
+  3. Speed → Rocket Loader OFF   (bisa merusak <script type="module">)
+  4. Security → Bot Fight Mode OFF  (nambah challenge/latency)
+  5. Network → HTTP/3 (QUIC) ON
+  6. SSL/TLS → Full (strict)
+  TIDAK perlu API token — semua di UI dashboard.
+
+UKURAN BUNDLE (diukur dari browser, live di GitHub Pages):
+  total transfer 453 KB / 31 request / load 1.86 s
+  three.js 396 KB gzip (87% bobot) — three.module.js 118 KB + three.core.js 278 KB
+  TTFB 311 ms, DOMContentLoaded 1.86 s
+  Target optimasi berikut: import map + three.core di-cache immutable header,
+  atau potong ke subset three (bila perlu <200 KB).
+
+CATATAN METODE:
+  Latency 1-4 s tadi diukur DARI VPS INI, yang keluar lewat jalur Tencent dan
+  di-route CF ke LAX. Pengguna asli di Indonesia kemungkinan kena edge Jakarta/SG
+  (lebih baik). Jadi angka itu batas atas, bukan angka pengguna. Meski begitu,
+  DNS-only tetap menang karena menghapus satu hop sepenuhnya.

@@ -28,20 +28,20 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
   Bukti: publik `HTTP/2 200` + ACAO tepat + HSTS; tanpa/asing Origin → 403; `/healthz` publik → 403; `http` → 301; LE cert expires 2027-02-02
 
 ### Repo
-- [ ] [Repo] Struktur frontend ESM modular + `src/shared` pure + `server/` + `scripts/` + README + `.gitignore` + `.env.example`
+- [x] [Repo] Struktur frontend ESM modular + `src/shared` pure + `server/` + `scripts/` + README + `.gitignore` + `.env.example`
 - [ ] [Repo] Versi dependensi di-pin + lockfile (server lockfile sudah ada)
 
 ### Frontend
-- [ ] [FE] Boot Three.js ESM pinned/vendor + handler WebGL error/context lost/restored
-- [ ] [FE] Layar judul/lobby guest/solo + resize/orientation + UI settings
-- [ ] [FE] Terrain 1024×1024 m deterministic seed, chunk 64 m, ring 2, batas dunia, slope landai
-- [ ] [FE] Pohon ≥3 varian, semak, rumput pendek/tinggi, batu ≥3 varian, jalan setapak, sun sore, fog/shadow tier
-- [ ] [FE] Rumah/gubuk dapat dimasuki ≥12, POI/reruntuhan ≥8, colliders sesuai metadata server, loot hotspot
-- [ ] [FE] InstancedMesh + LOD/culling + material reuse + disposer; monitor draw call/texture/GPU
-- [ ] [FE] Karakter L/P cosmetic, animasi gerak, kamera third-person 360° halus + camera collision
-- [ ] [FE] WASD/mouse + sprint + jump + prone; mobile portrait-only joystick kiri, drag-look kanan, multitouch, safe-area
-- [ ] [FE] Random spawn ≥40 kandidat valid, minimap kiri atas + map overlay zoom/pan + POI, keluar dari Solo ke Lobby
-- [ ] [FE] Settings backend URL TLS, Test Connection, status + latency + warning custom URL; localStorage nonsecret saja
+- [x] [FE] Boot Three.js ESM pinned/vendor + handler WebGL error/context lost/restored
+- [x] [FE] Layar judul/lobby guest/solo + resize/orientation + UI settings
+- [x] [FE] Terrain 1024×1024 m deterministic seed, chunk 64 m, ring 2, batas dunia, slope landai
+- [x] [FE] Pohon ≥3 varian, semak, rumput pendek/tinggi, batu ≥3 varian, jalan setapak, sun sore, fog/shadow tier
+- [x] [FE] Rumah/gubuk dapat dimasuki ≥12, POI/reruntuhan ≥8, colliders sesuai metadata server, loot hotspot
+- [x] [FE] InstancedMesh + LOD/culling + material reuse + disposer; monitor draw call/texture/GPU
+- [x] [FE] Karakter L/P cosmetic, animasi gerak, kamera third-person 360° halus + camera collision
+- [x] [FE] WASD/mouse + sprint + jump + prone; mobile portrait-only joystick kiri, drag-look kanan, multitouch, safe-area
+- [x] [FE] Random spawn ≥40 kandidat valid, minimap kiri atas + map overlay zoom/pan + POI, keluar dari Solo ke Lobby
+- [x] [FE] Settings backend URL TLS, Test Connection, status + latency + warning custom URL; localStorage nonsecret saja
 
 ### Backend
 - [x] [BE] Fastify v5 + better-sqlite3 + argon2 terpasang di Node 24 (native addon terbukti jalan)
@@ -53,8 +53,9 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
   Bukti: `ss` → `LISTEN 127.0.0.1:3000`
 
 ### Security
-- [ ] [Sec] CORS EXACT `https://akbarwiran.github.io` di production; localhost hanya development; OPTIONS + Vary:Origin diuji lewat HTTP server nyata
-- [ ] [Sec] Tolak Origin asing/null/missing di API browser-facing (kecuali healthz internal); dokumentasikan batas spoofing
+- [x] [Sec] CORS EXACT `https://akbarwiran.github.io` di production; localhost hanya development; OPTIONS + Vary:Origin diuji lewat HTTP server nyata
+- [x] [Sec] Tolak Origin asing/null/missing di API browser-facing (kecuali healthz internal); dokumentasikan batas spoofing
+  Bukti: curl Origin sah → 200 + ACAO tepat; tanpa Origin → 403; /healthz publik → 403
 - [ ] [Sec] Nginx/TLS plan, tanpa secret di frontend/repo, build Pages whitelist `dist/` saja; audit dist bebas backend/.env/DB
 
 ### QA
@@ -81,3 +82,17 @@ _(belum dimulai)_
 ## Butuh Keputusan
 
 _(kosong)_
+
+## PENDING_MANUAL (butuh HP asli)
+
+- [M] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless 4-8 tidak valid (SwiftShader)
+- [M] Uji multitouch joystick + drag-look simultan di layar sentuh nyata
+- [M] Cek safe-area notch di iPhone nyata
+
+
+## PENDING_MANUAL (butuh HP asli)
+
+- [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader
+- [M] [FE] Uji multitouch joystick + drag-look simultan di layar sentuh nyata
+- [M] [FE] Cek safe-area (notch) di iPhone nyata
+
