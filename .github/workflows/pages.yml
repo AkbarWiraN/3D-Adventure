@@ -1,0 +1,41 @@
+name: Deploy GHOSTDASH ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ghostdash/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # File internal tidak ikut terbit (CHECKLIST/PROMPT/tests/node_modules)
+      - name: Bersihkan file internal
+        run: |
+          cd ghostdash
+          rm -f CHECKLIST.md PROMPT.md controls-check.js phase2-check.js
+          rm -rf docs .git
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ghostdash
+      - id: deployment
+        uses: actions/deploy-pages@v4
