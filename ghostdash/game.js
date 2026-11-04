@@ -1083,6 +1083,10 @@
       bagGroup.add(this.bagLight);
 
       g.position.set(CONFIG.spawn.x, 0, CONFIG.spawn.z);
+      // bayangan dinamis hanya dibutuhkan saat kualitas >= sedang
+      if (qualityTier >= 2) {
+        g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+      }
       this.limbs = { armL: armL, armR: armR, legL: legL, legR: legR, torso: torso, head: head };
       this.group = g;
       scene.add(g);
