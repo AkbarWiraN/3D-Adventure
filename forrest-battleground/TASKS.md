@@ -118,6 +118,14 @@ Bug nyata ditemukan lewat stage test ini & sudah diperbaiki:
    Sekarang hanya register SUKSES yang `commit()` kuota (`check()`+`commit()`
    baru di rateLimit.js); test 22/22 REST tetap lulus.
 
+Verifikasi PRODUKSI (backend systemd di-restart dengan kode Fase 3, PID baru,
+`LISTEN 127.0.0.1:3000`, publik via https://api-be.bssn.biz.id):
+- REST: tanpa Origin → 403; Origin sah → 200 + `{"status":"ok"}`.
+- WSS nyata lewat TLS: tanpa Origin / Origin asing / Origin `null` →
+  close 1008 `ORIGIN_FORBIDDEN`; Origin sah → koneksi terbuka (auth-first).
+  Catatan jujur: nginx membalas 101 dulu, penolakan terjadi sebagai close
+  frame dari gateway — browser tidak bisa join, itu yang menentukan.
+
 BELUM TERBUKTI: HP asli (FPS/panas/baterai), multitouch sentuh nyata, safe-area
 notch, RTT/CPS produksi lintas jaringan, deploy Fase 4. Metrik browser
 SwiftShader bukan metrik perangkat.
