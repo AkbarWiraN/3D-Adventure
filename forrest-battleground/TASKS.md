@@ -29,7 +29,7 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
 
 ### Repo
 - [x] [Repo] Struktur frontend ESM modular + `src/shared` pure + `server/` + `scripts/` + README + `.gitignore` + `.env.example`
-- [ ] [Repo] Versi dependensi di-pin + lockfile (server lockfile sudah ada)
+- [x] [Repo] Versi dependensi di-pin + lockfile (server lockfile sudah ada)
 
 ### Frontend
 - [x] [FE] Boot Three.js ESM pinned/vendor + handler WebGL error/context lost/restored
@@ -56,13 +56,17 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
 - [x] [Sec] CORS EXACT `https://akbarwiran.github.io` di production; localhost hanya development; OPTIONS + Vary:Origin diuji lewat HTTP server nyata
 - [x] [Sec] Tolak Origin asing/null/missing di API browser-facing (kecuali healthz internal); dokumentasikan batas spoofing
   Bukti: curl Origin sah → 200 + ACAO tepat; tanpa Origin → 403; /healthz publik → 403
-- [ ] [Sec] Nginx/TLS plan, tanpa secret di frontend/repo, build Pages whitelist `dist/` saja; audit dist bebas backend/.env/DB
+- [x] [Sec] Nginx/TLS plan, tanpa secret di frontend/repo, build Pages whitelist `dist/` saja; audit dist bebas backend/.env/DB
+  Bukti: scripts/build-pages.mjs whitelist 5 entry + audit ganda di CI; dist 32 file tanpa server/.env/sqlite/md; test suite juga menolak private key & argon2id
 
 ### QA
-- [ ] [QA] Unit test Node: spawn deterministic, movement, chunk + world bounds
-- [ ] [QA] HTTP integration test server nyata: Origin valid/tidak valid/preflight, request malformed
-- [ ] [QA] Smoke browser desktop + emulasi mobile portrait; FPS/chunk/drawcall; catat yang belum diuji di HP asli
-- [ ] [QA] `npm ci`, `npm test`, `npm run build:pages` lulus; update checklist + status + decision log + checkpoint
+- [x] [QA] Unit test Node: spawn deterministic, movement, chunk + world bounds
+  Bukti: tests/unit/{world,spawn,chunk}.test.js → 41/41 LULUS (spawn dalam collider, determinisme chunk, batas dunia)
+- [x] [QA] HTTP integration test server nyata: Origin valid/tidak valid/preflight, request malformed
+  Bukti: server/tests/{http,security}.test.js → 22/22 LULUS; 2 bug nyata ditemukan & diperbaiki (404 tidak terformat, x-request-id hilang)
+- [x] [QA] Smoke browser desktop + emulasi mobile portrait; FPS/chunk/drawcall; catat yang belum diuji di HP asli
+- [x] [QA] `npm ci`, `npm test`, `npm run build:pages` lulus; update checklist + status + decision log + checkpoint
+  Bukti: unit 41/41; HTTP 22/22; build:pages 32 file 2.04 MB audit lolos; benchmark ab 574 req/s 0 failed; deploy Pages commit 0bcdda6 SUCCESS
 
 **DoD Fase 1:** hutan + kontrol playable Solo desktop & portrait, peta + exit jalan; API server nyata jalan di VPS tanpa membuka port Node publik; SQLite migrated; Origin tested; bundle Pages hanya aset frontend.
 

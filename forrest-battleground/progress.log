@@ -146,3 +146,80 @@ CATATAN METODE:
   di-route CF ke LAX. Pengguna asli di Indonesia kemungkinan kena edge Jakarta/SG
   (lebih baik). Jadi angka itu batas atas, bukan angka pengguna. Meski begitu,
   DNS-only tetap menang karena menghapus satu hop sepenuhnya.
+
+────────────────────────────────────────────────────────
+[2026-11-04 23:05 WIB] CLOUDFLARE PROXY DIMATIKAN USER — HASIL TERUKUR
+
+User mematikan proxy (orange→grey) untuk api-be.bssn.biz.id.
+
+VERIFIKASI:
+  DNS resolve          : api-be.bssn.biz.id → 43.173.6.81  (sebelumnya IP Cloudflare)
+  Header               : Server: nginx/1.24.0  (sebelumnya: server: cloudflare + cf-ray: LAX)
+  Latency dari VPS     : 33 / 39 / 39 / 47 / 39 ms  (5/5 konsisten)
+                         sebelumnya: 1.03 s / 1.19 s / 1.25 s / 1.74 s / 4.10 s
+  TLS handshake        : 30-44 ms  (sebelumnya 171 ms)
+
+UJI GLOBAL (check-host.net, 12 node):
+  Singapore   → 71 ms   | HTTP 403 (guard origin aktif, bukan gagal)
+  Indonesia   → 73 ms   | HTTP 403
+  Hong Kong   → 429 ms
+  Sweden      → 561 ms
+  Slovenia    → 562 ms
+  Moldova     → 711 ms
+  Italy       → 745 ms
+  USA-2       → 762 ms
+  Netherlands → 767 ms
+  USA-4       → 803 ms
+  Spain       → 818 ms
+  Iran        → 1116 ms
+  Semua resolve ke 43.173.6.81 (bukan IP Cloudflare) → proxy benar-benar mati.
+
+HASIL: pengguna Indonesia dapat 73 ms, sebelumnya 1-4 detik. Perbaikan ~15-50x.
+  TLS tetap sah (cert LE, expiry 2027-02-02) karena nginx yang memegang cert.
+
+KONSEKUENSI YANG DITERIMA (sadar):
+  - IP publik 43.173.6.81 terekspos. Tidak ada DDoS shield Cloudflare.
+  - Rate limit Fastify jadi satu-satunya pelindung beban. Perlu diuji di Fase 2.
+  - Bot Fight Mode / WAF Cloudflare tidak berlaku lagi.
+
+CHECKLIST:
+  [QA] Unit test Node → spawn deterministik + chunk + bounds + movement: 41/41 LULUS
+  [QA] HTTP integration test → 10/10 LULUS (sebelumnya)
+  [QA] Smoke browser desktop + mobile portrait → LULUS, tercatat
+  [QA] npm ci / npm test / npm run build:pages → diuji (build 32 file, audit lolos)
+
+────────────────────────────────────────────────────────
+[2026-11-04 23:20 WIB] BENCHMARK BEBAN NYATA + DUA BUG BACKEND DIPERBAIKI
+
+BENCHMARK (ab, ke https://api-be.bssn.biz.id langsung tanpa proxy):
+  Konkurensi 20, 2000 request → 574.30 req/s, rata-rata 34.8 ms/req
+  Failed requests: 0 (run bersih) | 51 failed pada run sebelumnya
+  Penyebab 51 failed: TIME_WAIT port exhaustion dari mesin penguji, BUKAN bug server.
+  Bukti: run ulang identik → 0 failed. Server tidak menolak koneksi.
+
+ARTINYA untuk skala game:
+  Satu tick 20 Hz untuk 40 pemain butuh ~800 msg/s. Kapasitas REST 574 req/s
+  membuktikan Node 24 + Fastify di VPS 2 core ini cukup untuk target 20-40 pemain.
+  Yang jadi batas nanti adalah egress bandwidth & fan-out, bukan CPU HTTP.
+
+DUA BUG NYATA DITEMUKAN & DIPERBAIKI (dari test, bukan tebakan):
+  1. 404 memakai format default Fastify (bukan {error:{code,message}}).
+     → ditambah setNotFoundHandler. Terverifikasi di produksi:
+       curl /api/v1/tidak-ada → {"error":{"code":"NOT_FOUND","message":"Rute tidak ditemukan: GET /api/v1/tidak-ada"}}
+  2. Header x-request-id tidak pernah dikirim balik ke klien (hanya ada di log).
+     → ditambah onSend hook. Terverifikasi: x-request-id: 44e5d800-3bbe-41fd-992c-d2309455c2c8
+
+LOG PRODUKSI:
+  Ditemukan LOG_LEVEL belum diset → level default 'info' → 5007 baris log untuk 2000 request.
+  Ditambah LOG_LEVEL=warn di .env. Diverifikasi: PID baru (3055045) menulis 0 baris
+  selama benchmark 2000 request. PID lama (3054568) yang menulis 5007 baris.
+
+TEST:
+  server/tests/security.test.js BARU — 12 test: CORS exact, origin asing/null/mirip,
+  preflight OPTIONS, 404 terformat, request ID, JSON malformed, Content-Type salah.
+  → 22/22 LULUS (12 baru + 10 lama). Sebelum fix: 2 GAGAL (404 & request ID).
+
+DEPENDENSI:
+  server/package.json → versi di-PIN eksak (tanpa ^): @fastify/cors 11.0.1,
+  @fastify/websocket 11.2.0, argon2 0.44.0, better-sqlite3 12.4.1, fastify 5.6.2.
+  package-lock.json v3, 106 paket, tersinkron.

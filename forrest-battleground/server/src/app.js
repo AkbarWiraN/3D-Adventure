@@ -44,13 +44,33 @@ export async function buildApp(opts = {}) {
   // --- Origin guard: exact allowlist, tolak asing/null/missing (kecuali /healthz internal).
   app.addHook('onRequest', createOriginGuard(config.origins));
 
+  // --- Request ID dikirim balik supaya klien bisa korelasikan log (tanpa bocor isi).
+  app.addHook('onSend', async (req, reply) => {
+    reply.header('x-request-id', req.id);
+  });
+
+  // --- 404 konsisten dengan format error lain (jangan pakai default Fastify).
+  app.setNotFoundHandler((req, reply) => {
+    reply.code(404).send({
+      error: { code: 'NOT_FOUND', message: `Rute tidak ditemukan: ${req.method} ${req.url}` },
+    });
+  });
+
   // --- Error handler: pesan bersih, tanpa stacktrace ke client.
   app.setErrorHandler((err, req, reply) => {
     req.log.error({ err, reqId: req.id }, 'request gagal');
     const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500;
+    const code =
+      status === 400 ? 'BAD_REQUEST' :
+      status === 403 ? 'FORBIDDEN' :
+      status === 404 ? 'NOT_FOUND' :
+      status === 409 ? 'CONFLICT' :
+      status === 422 ? 'UNPROCESSABLE' :
+      status === 429 ? 'RATE_LIMITED' :
+      status >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR';
     reply.code(status).send({
       error: {
-        code: status === 400 ? 'BAD_REQUEST' : status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR',
+        code,
         message: status >= 500 ? 'Terjadi kesalahan internal' : err.message,
       },
     });
