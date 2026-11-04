@@ -37,6 +37,35 @@ export function sweep() {
   return removed;
 }
 
+/**
+ * Cek TANPA menambah hit (untuk endpoint yang hanya boleh menghitung
+ * percobaan SUKSES — mis. register). Batas laju register harus menghentikan
+ * pembuatan akun, bukan menghukum percobaan yang gagal validasi.
+ * @returns {{allowed:boolean,retryAfterSec:number,remaining:number}}
+ */
+export function check(key, { max, windowMs }) {
+  const now = Date.now();
+  const b = buckets.get(key);
+  if (!b || now >= b.resetAt) return { allowed: true, retryAfterSec: 0, remaining: max };
+  return {
+    allowed: b.count < max,
+    retryAfterSec: Math.max(1, Math.ceil((b.resetAt - now) / 1000)),
+    remaining: Math.max(0, max - b.count),
+  };
+}
+
+/** Catat satu kejadian SUKSES (dipasangkan dengan check()). */
+export function commit(key, { windowMs }) {
+  const now = Date.now();
+  let b = buckets.get(key);
+  if (!b || now >= b.resetAt) {
+    b = { count: 0, resetAt: now + windowMs };
+    buckets.set(key, b);
+  }
+  b.count += 1;
+  return b.count;
+}
+
 /** Untuk pengujian. */
 export function resetAll() {
   buckets.clear();

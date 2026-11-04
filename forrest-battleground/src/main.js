@@ -5,8 +5,10 @@ import { CONFIG } from './config.js';
 import { emit, on } from './core/bus.js';
 import { Screens } from './ui/screens.js';
 import { SoloSession } from './core/session.js';
+import { OnlineSession } from './core/onlineSession.js';
 import { loadSettings, saveSettings } from './storage/settings.js';
 import { Lobby } from './ui/lobby.js';
+import { getToken, getUser } from './network/rest.js';
 
 const canvas = document.getElementById('gl');
 const screens = new Screens();
@@ -32,12 +34,11 @@ function boot() {
   screens.show('title');
   screens.refreshOnlineNote();
 
-  // Konfirmasi jujur: tombol online nonaktif di Fase 1.
+  // Fase 3: Online aktif HANYA setelah login (butuh token untuk auth-first WSS).
   const btnOnline = document.getElementById('btn-online');
   if (btnOnline) {
-    btnOnline.disabled = true;
-    btnOnline.textContent = 'Main Online (segera)';
-    btnOnline.title = 'Multiplayer tersedia pada Fase 3';
+    btnOnline.disabled = !getToken();
+    btnOnline.title = getToken() ? 'Masuk room forest (WSS otoritatif)' : 'Login dahulu untuk main online';
   }
   started = true;
 }
@@ -48,19 +49,18 @@ function isWebGLAvailable() {
 }
 
 // ---------------------------------------------------------------- transisi
-function startSolo() {
+function startSolo(mode = 'solo') {
   try {
-    screens.showLoading(0.6, 'Membangkitkan hutan purba');
+    screens.showLoading(0.6, mode === 'online' ? 'Masuk room forest…' : 'Membangkitkan hutan purba');
     // Biarkan browser sempat melukis overlay sebelum pekerjaan berat.
     requestAnimationFrame(() => {
       setTimeout(() => {
         try {
           const settings = loadSettings();
-          session = new SoloSession({
-            canvas,
-            screens,
-            character: settings.lastCharacter || lobby.currentCharacter || 'male',
-          });
+          const character = settings.lastCharacter || lobby.currentCharacter || 'male';
+          session = mode === 'online'
+            ? new OnlineSession({ canvas, screens, character })
+            : new SoloSession({ canvas, screens, character });
           screens.hideAll();
           session.start();
           emit('game:started');
@@ -80,6 +80,9 @@ function startSolo() {
 }
 
 function exitSolo() {
+  if (session instanceof OnlineSession) {
+    // leave_ack dikirim di dispose(); socket ditutup setelah 500 ms.
+  }
   if (session) {
     try { session.dispose(); } catch (err) { console.error('[dispose]', err); }
     session = null;
@@ -103,6 +106,14 @@ function pauseGame() {
 // ------------------------------------------------------------------ events
 // bus events (didaftarkan via import emit)
 on('ui:startSolo', startSolo);
+on('ui:startOnline', () => startSolo('online'));
+document.getElementById('btn-online')?.addEventListener('click', () => {
+  if (!getToken() || !getUser()) {
+    screens.refreshOnlineNote('Login dahulu untuk main online.');
+    return;
+  }
+  startSolo('online');
+});
 on('ui:exitSolo', exitSolo);
 document.getElementById('btn-death-exit')?.addEventListener('click', exitSolo);
 on('ui:pause', pauseGame);

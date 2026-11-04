@@ -6,6 +6,7 @@ import { requireAuth } from '../../auth/requireAuth.js';
 import { config } from '../../config.js';
 import { getWorld } from '../../../../src/shared/world.js';
 import { globalCounts } from '../../persistence/usersRepo.js';
+import { getRealtime } from '../../realtime/index.js';
 
 // Registry room nyata. Fase 3 akan mengisi ini dari gateway WSS.
 // Sampai ada WS, room tidak punya pemain → onlineCount 0 (jujur, bukan angka palsu).
@@ -37,7 +38,10 @@ function roomStatus(mapId) {
   if(mapId!=='forest')return null;
   const room = getRoom(mapId);
   const world = getWorld();
-  const onlineCount = room.players.size; // authoritative: hanya session WS yang join
+  // Satu sumber kebenaran: gateway WSS (room in-memory di sana).
+  // Fallback ke room registry lokal hanya jika gateway belum terpasang (test unit).
+  const gw = getRealtime?.();
+  const onlineCount = gw ? gw.status().online : room.players.size;
   return {
     mapId,
     name: 'Forest Purba',
@@ -50,9 +54,9 @@ function roomStatus(mapId) {
     onlineCount,
     hardCap: room.hardCap,
     available: onlineCount < room.hardCap,
-    // Jujur: multiplayer belum aktif sampai Fase 3.
-    multiplayerActive: false,
-    note: 'Multiplayer aktif pada Fase 3. Angka online berasal dari session WS nyata.',
+    // Jujur: Fase 3 aktif — onlineCount dari gateway WSS (session join nyata).
+    multiplayerActive: true,
+    note: 'Angka online berasal dari session WSS yang join room forest.',
   };
 }
 

@@ -9,6 +9,7 @@ import { registerAuthRoutes } from './http/routes/auth.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerMapRoutes } from './http/routes/maps.js';
 import { registerLeaderboardRoutes } from './http/routes/leaderboard.js';
+import { registerRealtime, getRealtime } from './realtime/index.js';
 
 export async function buildApp(opts = {}) {
   const app = Fastify({
@@ -46,7 +47,13 @@ export async function buildApp(opts = {}) {
   });
 
   // --- Origin guard: exact allowlist, tolak asing/null/missing (kecuali /healthz internal).
-  app.addHook('onRequest', createOriginGuard(config.origins));
+  // HANYA untuk request HTTP biasa. Upgrade WebSocket ditangani gateway sendiri
+  // (Fase 3): handshake yang ditolak harus CLOSE 1008, bukan balas HTTP 403 —
+  // browser tidak bisa membaca body 403 di upgrade.
+  app.addHook('onRequest', (req, reply, done) => {
+    if (req.url === '/ws' || req.url.startsWith('/ws?')) return done();
+    return createOriginGuard(config.origins)(req, reply, done);
+  });
 
   // --- Request ID dikirim balik supaya klien bisa korelasikan log (tanpa bocor isi).
   app.addHook('onSend', async (req, reply) => {
@@ -85,5 +92,11 @@ export async function buildApp(opts = {}) {
   await registerUserRoutes(app);
   await registerMapRoutes(app);
   await registerLeaderboardRoutes(app);
+
+  // Fase 3: gateway WSS authoritative di proses yang sama (Origin exact + auth-first).
+  // Tidak dipasang saat test HTTP yang tidak membutuhkannya (opts.skipRealtime).
+  if (!opts.skipRealtime) {
+    await registerRealtime(app, { allowedOrigins: config.origins, hardCap: config.roomHardCap });
+  }
   return app;
 }

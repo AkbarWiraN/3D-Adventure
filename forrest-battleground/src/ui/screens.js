@@ -209,7 +209,7 @@ export class Screens {
       return;
     }
     const base = (CONFIG.backendBase || '').trim() || 'https://api-be.bssn.biz.id';
-    this.nodes.onlineNote.textContent = `Online belum tersedia (Fase 3). Backend: ${base}`;
+    this.nodes.onlineNote.textContent = `Room forest · WSS otoritatif · backend ${base}`;
   }
 
   /** Tier grafis yang sedang dipakai — ditampilkan jujur ke pemain. */

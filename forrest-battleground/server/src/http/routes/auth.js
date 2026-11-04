@@ -5,7 +5,7 @@ import {
   validateUsername, validatePassword, validateCharacter, canonicalUsername,
 } from '../../auth/validation.js';
 import { createUser, findByCanonical, getPublicById, toPublicUser } from '../../persistence/usersRepo.js';
-import { take as rateTake } from '../../security/rateLimit.js';
+import { take as rateTake, check as rateCheck, commit as rateCommit } from '../../security/rateLimit.js';
 
 // Batas laju (prompt.md §4.6). Ketat untuk register, sedang untuk login.
 const REGISTER_LIMIT = { max: 5, windowMs: 15 * 60 * 1000 };   // 5 / 15 menit / IP
@@ -17,7 +17,9 @@ const clientIp = (req) => req.ip || 'unknown';
 export async function registerAuthRoutes(app) {
   app.post('/api/v1/auth/register', async (req, reply) => {
     const ip = clientIp(req);
-    const rl = rateTake(`register:ip:${ip}`, REGISTER_LIMIT);
+    // Hanya register SUKSES yang menghitung kuota: percobaan gagal validasi
+    // (username dipakai, password lemah) tidak boleh menghabiskan kuota orang lain.
+    const rl = rateCheck(`register:ip:${ip}`, REGISTER_LIMIT);
     if (!rl.allowed) {
       return reply.code(429).header('Retry-After', rl.retryAfterSec).send({
         error: { code: 'RATE_LIMITED', message: `Terlalu banyak percobaan. Coba lagi dalam ${rl.retryAfterSec} detik.` },
@@ -56,6 +58,7 @@ export async function registerAuthRoutes(app) {
     });
 
     req.log.info({ userId: created.id }, 'akun baru terdaftar');
+    rateCommit(`register:ip:${ip}`, REGISTER_LIMIT); // kuota hanya naik saat akun benar-benar dibuat
     return reply.code(201).send({ token, expiresAt, user: toPublicUser(created) });
   });
 

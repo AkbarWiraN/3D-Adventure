@@ -91,7 +91,36 @@ Bug nyata ditemukan lewat QA browser ini dan sudah diperbaiki:
 BELUM TERBUKTI: HP asli (FPS/panas/baterai), multitouch sentuh nyata, safe-area notch, CPU/RSS produksi, deploy. Lihat PENDING_MANUAL.
 
 ## FASE 3 — Multiplayer authoritative WSS + leaderboard kill/death + exit/rejoin
-_(belum dimulai)_
+_(IN PROGRESS — WSS backend + FE client dasar; integration tests 7/7, browser UI smoke PASS)_
+
+Deliverable terverifikasi:
+- `server/src/realtime/{protocol,room,gateway,index}.js`: WSS `/ws`, Origin exact, auth-first ≤5 s, protocol v1/max frame 16 KiB/seq anti-replay, room 8, tick 20 Hz, AoI snapshots 10 Hz, anonymous enemy map 2 Hz, movement/collision server-side, inventory/loot/combat, respawn, leave, duplicate-session protection, combat-logout credit.
+- `src/network/ws.js` + `src/core/onlineSession.js`: token memory-only, auth/join, input intent 20 Hz, server correction, remote interpolation, online leave; Solo tidak lagi menjalankan combat lokal di Online.
+- `server/tests/realtime.test.js`: 7/7; `server/tests/online-smoke.mjs`: Chrome headless WebGL, UI register/login → tombol Online → WSS join → exit, onlineCount kembali nol.
+- End-to-end server nyata: `127.0.0.1:3000/ws` upgrade 101; status API online count 2 → 1 → 0; Origin sah / auth diuji.
+- Backend REST 23/23, unit 42/42, build Pages audit lolos.
+
+Stage test NYATA (baru, `server/tests/load-stage.mjs` → VERDICT PASS):
+- PvP sungguhan lewat WSS: A sword vs B bow, dua duel terpisah, masing-masing
+  5 hit 100→80→60→40→20→0, mati, kill feed sampai kedua klien, respawn otomatis
+  3 s → HP 100 + tangan kosong (senjata dijatuhkan saat mati sesuai spesifikasi),
+  re-pickup bow lewat aksi pickup nyata, leaderboard PvP 1/1 untuk kedua akun.
+- Load 2/4/8 klien: tick 19.8-19.9 Hz (stabil, target 20 Hz), snapshot AoI
+  p50 100-101 ms / p95 102-103 ms / max 103-151 ms (target 10 Hz = 100 ms),
+  CPU proses 1.6-2.5%, RSS total 151→196 MB, 0 socket error, tanpa akselerasi
+  klien nyata. Catatan jujur: klien+server satu proses → CPU = batas ATAS;
+  RTT loopback tidak diukur (ping/pong hanya untuk smoke), jadi angka RTT
+  internet TIDAK diklaim.
+
+Bug nyata ditemukan lewat stage test ini & sudah diperbaiki:
+1. Rate limit register menghitung PERCOBAAN gagal (username dipakai, password
+   lemah) — kuota 5/15m habis tanpa satu akun jadi, memblokir load test 8 klien.
+   Sekarang hanya register SUKSES yang `commit()` kuota (`check()`+`commit()`
+   baru di rateLimit.js); test 22/22 REST tetap lulus.
+
+BELUM TERBUKTI: HP asli (FPS/panas/baterai), multitouch sentuh nyata, safe-area
+notch, RTT/CPS produksi lintas jaringan, deploy Fase 4. Metrik browser
+SwiftShader bukan metrik perangkat.
 
 ## FASE 4 — Hardening, optimasi VPS, deploy GitHub Pages + Tencent, uji akhir
 _(belum dimulai)_
