@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1026">
+<title>GHOSTDASH — Pasar Malam Arwah</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="hidden" aria-live="polite">
+  <div class="hud-top">
+    <div class="hud-left">
+      <div class="stat" title="Rating kurir"><span class="ico">⭐</span><span id="rating" class="val">5.00</span></div>
+      <div class="stat" title="Penghasilan"><span class="ico">💵</span><span id="cash" class="val">Rp 0</span></div>
+      <div id="combo" class="combo hidden">x1.0</div>
+    </div>
+
+    <div class="dawn">
+      <div class="dawn-track">
+        <div id="dawn-fill" class="dawn-fill"></div>
+        <div id="dawn-knob" class="dawn-knob">🌙</div>
+      </div>
+      <div id="clock" class="clock">23:00</div>
+    </div>
+
+    <div class="hud-right">
+      <button id="btn-pause" class="icon-btn" aria-label="Jeda (Esc)">⏸</button>
+      <button id="btn-mute" class="icon-btn" aria-label="Bisukan (M)">🔊</button>
+    </div>
+  </div>
+
+  <div id="orders" class="orders"></div>
+  <div id="bag" class="bag"></div>
+
+  <div id="cooldowns" class="cooldowns">
+    <div class="cd" id="cd-dash"><svg viewBox="0 0 36 36"><circle class="cd-bg" cx="18" cy="18" r="15"/><circle class="cd-fg" id="cd-dash-fg" cx="18" cy="18" r="15"/></svg><span>DASH</span></div>
+    <div class="cd" id="cd-lantern"><svg viewBox="0 0 36 36"><circle class="cd-bg" cx="18" cy="18" r="15"/><circle class="cd-fg" id="cd-lantern-fg" cx="18" cy="18" r="15"/></svg><span>LENTERA</span></div>
+  </div>
+
+  <div id="markers" class="markers"></div>
+  <div id="edge-arrows" class="edge-arrows"></div>
+
+  <div id="prompt" class="prompt hidden"></div>
+  <div id="toasts" class="toasts"></div>
+</div>
+
+<div id="touch" class="touch hidden">
+  <div id="joystick" class="joystick"><div id="joystick-knob" class="knob"></div></div>
+  <div id="lookzone" class="lookzone"></div>
+  <div class="touch-buttons">
+    <button id="tb-run" class="tbtn small">LARI</button>
+    <button id="tb-dash" class="tbtn small">DASH</button>
+    <button id="tb-lantern" class="tbtn small">LENTERA</button>
+    <button id="tb-wrong" class="tbtn mid">KASIH ASAL</button>
+    <button id="tb-action" class="tbtn big">AKSI</button>
+  </div>
+</div>
+
+<div id="screen-title" class="overlay">
+  <div class="title-inner">
+    <h1 class="logo">GHOSTDASH</h1>
+    <p class="sub">Pasar Malam Arwah</p>
+    <p class="tagline">“Antar pesanan arwah sebelum subuh. Rating bintang 5, atau kena prank.”</p>
+    <div class="title-actions">
+      <button id="btn-main" class="btn primary">Main</button>
+      <button id="btn-char" class="btn">Karakter: <span id="char-name">Raka</span></button>
+      <button id="btn-how" class="btn">Cara Main</button>
+      <button id="btn-settings" class="btn">Pengaturan</button>
+    </div>
+    <div id="night-select" class="night-select hidden">
+      <p class="mini-label">Pilih Malam</p>
+      <div id="night-buttons" class="night-buttons"></div>
+      <button id="btn-close-night" class="btn tiny">Tutup</button>
+    </div>
+    <p id="best-scores" class="best"></p>
+    <p class="credit">Semua visual &amp; suara dibuat dengan kode. Three.js r128.</p>
+  </div>
+</div>
+
+<div id="screen-how" class="overlay hidden">
+  <div class="panel">
+    <h2>Cara Main</h2>
+    <ul class="how-list">
+      <li><b>Jalan</b> WASD / panah. <b>Lari</b> Shift. <b>Kamera</b> gerak mouse (klik dulu) atau drag.</li>
+      <li><b>E</b> ambil pesanan di lapak bercahaya, lalu <b>E</b> lagi di dekat pelanggan untuk mengantar.</li>
+      <li><b>Q</b> “Kasih Asal”: kasih item apa saja. 35% jadi treat, 65% jadi prank. Nekat boleh, jangan sering.</li>
+      <li><b>Spasi</b> dash, <b>F</b> Lentera Kilat (bekukan Wisp), <b>Esc/P</b> jeda, <b>M</b> mute.</li>
+      <li>Rating mulai 5.00. Pesanan hangus dan prank menurunkan rating. Di bawah 2.00 akunmu disuspend.</li>
+      <li>Kunang-kunang menambah skor dan 2 detik ke pesanan tertua. Naik ke Menara Air untuk lihat seluruh pasar.</li>
+    </ul>
+    <button class="btn primary close-panel">Ngerti</button>
+  </div>
+</div>
+
+<div id="screen-settings" class="overlay hidden">
+  <div class="panel">
+    <h2>Pengaturan</h2>
+    <label class="row">Volume <input id="set-volume" type="range" min="0" max="100" value="70"></label>
+    <label class="row">Sensitivitas kamera <input id="set-sens" type="range" min="30" max="200" value="100"></label>
+    <label class="row check"><input id="set-reduced" type="checkbox"> Kurangi Gerakan (tanpa goyang/miring kamera)</label>
+    <label class="row">Kualitas grafis
+      <select id="set-quality">
+        <option value="auto">Auto</option>
+        <option value="low">Rendah</option>
+        <option value="mid">Sedang</option>
+        <option value="high">Tinggi</option>
+      </select>
+    </label>
+    <button class="btn primary close-panel">Simpan</button>
+  </div>
+</div>
+
+<div id="screen-pause" class="overlay hidden">
+  <div class="panel">
+    <h2>Jeda</h2>
+    <p class="muted">Arwahnya sabar. Sebentar lagi, ya.</p>
+    <button id="btn-resume" class="btn primary">Lanjut</button>
+    <button id="btn-restart" class="btn">Ulangi Malam</button>
+    <button id="btn-quit" class="btn">Ke Layar Judul</button>
+  </div>
+</div>
+
+<div id="screen-end" class="overlay hidden">
+  <div class="panel end-panel">
+    <h2 id="end-title">SUBUH!</h2>
+    <p id="end-sub" class="muted"></p>
+    <div id="end-grade" class="grade">S</div>
+    <div id="end-stats" class="end-stats"></div>
+    <div class="end-actions">
+      <button id="btn-again" class="btn primary">Main Lagi</button>
+      <button id="btn-night" class="btn">Pilih Malam</button>
+      <button id="btn-card" class="btn">Simpan Kartu Skor</button>
+    </div>
+  </div>
+</div>
+
+<div id="fatal" class="overlay hidden">
+  <div class="panel">
+    <h2>Waduh 😵</h2>
+    <p id="fatal-msg" class="muted">Browser ini belum bisa menjalankan WebGL, atau Three.js gagal dimuat dari CDN.</p>
+    <p class="muted">Coba Chrome/Firefox terbaru, pastikan koneksi internet aktif, lalu muat ulang halaman.</p>
+  </div>
+</div>
+
+<noscript><div class="overlay"><div class="panel"><h2>Butuh JavaScript</h2><p class="muted">Aktifkan JavaScript untuk memainkan GHOSTDASH.</p></div></div></noscript>
+
+<script>
+// Early error collector: dipakai layar error ramah + debug.
+window.__errs = [];
+window.addEventListener('error', function (e) {
+  window.__errs.push(String(e.message || e.error || 'unknown'));
+  if (window.__fatal) window.__fatal(e.message);
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
