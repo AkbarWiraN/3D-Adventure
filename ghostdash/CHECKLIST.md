@@ -1,7 +1,7 @@
 # CHECKLIST GHOSTDASH — status per fase
 
 Legenda: `[x]` selesai · `[ ]` belum · **[M]** must · **[S]** should · **[C]** could
-Diperbarui: FASE 1 selesai (commit `0c4a35f`).
+Diperbarui: FASE 1 + implementasi FASE 2; QA lapangan FASE 2 masih belum lengkap.
 
 ## 15.1 Konsep dan identitas
 - [x] [M] Nama **GHOSTDASH: Pasar Malam Arwah** tampil di layar judul
@@ -28,11 +28,11 @@ Diperbarui: FASE 1 selesai (commit `0c4a35f`).
 
 ## 15.3 Karakter
 - [x] [M] Pemain (Raka/Nala) dengan animasi jalan dan lari
-- [ ] [M] Pemain — animasi sukses mengantar  → FASE 2
+- [x] [M] Pemain — animasi sukses mengantar
 - [x] [M] Pemilihan karakter di layar judul
 - [x] [M] Kunang (pendamping) melayang mengikuti pemain
-- [ ] [M] Kunang menunjuk arah tujuan + bubble petunjuk  → FASE 2
-- [ ] [M] Minimal 2 tipe pelanggan: Bocil Gaib dan Om Gembul  → FASE 2
+- [x] [M] Kunang menunjuk arah tujuan + bubble petunjuk
+- [x] [M] Minimal 2 tipe pelanggan: Bocil Gaib dan Om Gembul
 - [ ] [M] Wisp Usil dengan perilaku mengejar  → FASE 3
 - [ ] [S] Mbak Lampion (target bergerak)  → FASE 3
 - [ ] [S] Eyang Wayang (pesanan misterius)  → FASE 3
@@ -40,19 +40,19 @@ Diperbarui: FASE 1 selesai (commit `0c4a35f`).
 - [ ] [C] Penjual lapak menggoyang spatula  → FASE 4
 
 ## 15.4 Gameplay
-- [ ] [M] Pesanan baru muncul berkala dengan notifikasi  → FASE 2
-- [ ] [M] Ambil item di lapak, bawa di tas (kapasitas 3), antar ke pelanggan  → FASE 2
-- [ ] [M] Timer per pesanan dan efek saat hangus  → FASE 2
-- [ ] [M] Rating, penghasilan, tip, dan combo bekerja sesuai rumus  → FASE 2
-- [ ] [M] Kalah saat rating < 2.0, menang saat Subuh  → FASE 2
-- [ ] [M] Mekanik **Kasih Asal** (35% treat / 65% trick)  → FASE 2
+- [x] [M] Pesanan baru muncul berkala dengan notifikasi
+- [x] [M] Ambil item di lapak, bawa di tas (kapasitas 3), antar ke pelanggan
+- [x] [M] Timer per pesanan dan efek saat hangus
+- [x] [M] Rating, penghasilan, tip, dan combo bekerja sesuai rumus
+- [x] [M] Kalah saat rating < 2.0, menang saat Subuh
+- [x] [M] Mekanik **Kasih Asal** (35% treat / 65% trick)
 - [ ] [M] Minimal 3 jenis prank  → FASE 3
-- [ ] [M] Kunang-kunang kolektibel  → FASE 2
+- [x] [M] Kunang-kunang kolektibel
 - [ ] [S] Stamina + lari  → FASE 3
 - [ ] [S] Dash dan Lentera Kilat dengan cooldown  → FASE 3
 - [ ] [S] Event tengah malam (Gerobak Hantu Emas)  → FASE 3
 - [ ] [S] Malam 1, 2, 3 dengan tingkat kesulitan berbeda  → FASE 3
-- [ ] [S] Tutorial interaktif 3 langkah (sekali saja)  → FASE 2
+- [x] [S] Tutorial interaktif 3 langkah (sekali saja)
 - [ ] [S] 3 spot rahasia  → FASE 3
 - [ ] [C] Mode Endless  → FASE 3
 - [ ] [C] Pencapaian  → FASE 3
@@ -62,6 +62,7 @@ Diperbarui: FASE 1 selesai (commit `0c4a35f`).
 - [x] [M] Kamera mouse (pointer lock + fallback drag)
 - [x] [M] Joystick virtual + geser kamera + tombol aksi di mobile
 - [x] [M] Multi-touch berjalan (gerak dan kamera bersamaan)
+- [x] [M] Mobile/tablet wajib landscape; portrait menampilkan layar putar perangkat
 - [x] [M] Tidak ada scroll/zoom/context-menu yang mengganggu di mobile
 - [x] [S] Scroll untuk zoom kamera
 - [x] [S] Sensitivitas kamera bisa diatur
@@ -69,18 +70,18 @@ Diperbarui: FASE 1 selesai (commit `0c4a35f`).
 ## 15.6 UI / HUD
 - [x] [M] Rating, penghasilan, combo (tampil; nilainya diisi FASE 2)
 - [x] [M] Bar Subuh (bulan → matahari)
-- [ ] [M] Kartu pesanan dengan ikon, tujuan, dan timer  → FASE 2
+- [x] [M] Kartu pesanan dengan ikon, tujuan, dan timer
 - [x] [M] Prompt aksi kontekstual (komponen siap)
-- [ ] [M] Marker 3D target + jarak  → FASE 2
-- [ ] [M] Panah tepi layar ke target di luar layar  → FASE 2
-- [x] [M] Layar judul, jeda, dan akhir (kerangka; isi statistik di FASE 2)
+- [x] [M] Marker 3D target + jarak
+- [x] [M] Panah tepi layar ke target di luar layar
+- [x] [M] Layar judul, jeda, dan akhir (statistik dan grade)
 - [x] [S] Indikator tas, cooldown ring, toast
 - [ ] [S] Kartu skor PNG yang bisa diunduh  → FASE 4
 - [ ] [C] Layar pencapaian  → FASE 4
 
 ## 15.7 Audio
 - [x] [M] Audio mulai setelah interaksi pertama, ada tombol mute
-- [ ] [M] SFX: ambil, antar sukses, prank, notifikasi pesanan  → ikut FASE 2-3
+- [x] [M] SFX: ambil, antar sukses, prank, notifikasi pesanan
 - [x] [S] Ambience jangkrik (noise tersaring + LFO)
 - [ ] [S] Musik gamelan sintetis, tempo naik menjelang subuh  → FASE 4
 - [ ] [S] Detak halus saat Wisp Usil mendekat  → FASE 3
@@ -115,9 +116,9 @@ Diperbarui: FASE 1 selesai (commit `0c4a35f`).
 - [x] [M] Uji satu Malam berjalan: progres langit, timer, jeda/lanjut, gerak pemain, kolisi batas
 - [x] [M] Uji resize/rotasi layar (handler `resize` + `orientationchange`)
 - [x] [M] Uji jeda lalu lanjut, progres tidak melompat
-- [ ] [M] Uji satu Malam penuh sampai Subuh di desktop (perlu main manual; belum ada aturan menang sampai FASE 2)
+- [ ] [M] Uji satu Malam penuh sampai Subuh di desktop (perlu main manual)
 - [ ] [M] Uji satu Malam penuh di HP (portrait dan landscape)
-- [ ] [M] Uji kalah karena rating < 2.0  → FASE 2
+- [ ] [M] Uji kalah karena rating < 2.0 (perlu uji manual browser)
 - [ ] [M] Uji semua prank  → FASE 3
 - [ ] [S] Uji tab berpindah lalu kembali
 - [ ] [S] Uji 10 menit bermain tanpa penurunan FPS (headless hanya 20 FPS — angka tidak representatif)

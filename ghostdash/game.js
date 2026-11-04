@@ -9,8 +9,14 @@
   var CONFIG = {
     world: { radius: 70, fogNear: 20, fogFar: 95, groundY: 0 },
     player: { walk: 5.0, run: 8.5, radius: 0.5, accel: 14, turn: 12 },
-    camera: { fov: 65, dist: 6, distMin: 3, distMax: 10, pitchMin: -10, pitchMax: 60, smooth: 8, sens: 1 },
+    camera: { fov: 65, dist: 6, distMin: 3, distMax: 10, pitchMin: -10, pitchMax: 60, smooth: 8, sens: 1, follow: 3.2, followDead: 0.12, followMax: 1.6 },
     ui: { toastMs: 2200 },
+    interact: { stall: 2.2, customer: 2.5 },
+    order: { minDist: 25, gap: 25, expiryGrace: 0 },
+    rating: { start: 5, fail: 2.0, onTime: 0.05, fast: 0.08, trick: -0.3, expire: -0.4, wrongSmall: 0.02 },
+    score: { perItem: 100, tipMax: 50, comboStep: 0.25, comboMax: 16, fireflyScore: 10, fireflyBonus: 2, gradeS: { 1: 120000, 2: 260000, 3: 450000 } },
+    wrongGive: { successChance: 0.35, rewardScale: 0.5 },
+    fireflyCollect: { radius: 1.6, total: 40, magnet: 5 },
     night: { durM1: 180, durM2: 240, durM3: 300, demoCycle: true },
     fireflies: 40,
     decorFireflies: 90,
@@ -26,6 +32,15 @@
     spawn: { x: 0, z: 56 },
     debug: /[?&]debug=1/.test(location.search)
   };
+
+  function isMobileTablet() {
+    return navigator.maxTouchPoints > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+  function updateRotateGate() {
+    var gate = document.getElementById('rotate-gate');
+    if (gate) gate.style.display = isMobileTablet() && window.innerHeight > window.innerWidth ? 'grid' : 'none';
+  }
 
   var LANDMARKS = [
     { id: 1, name: 'Gapura Masuk', x: 0, z: 60 },
@@ -74,6 +89,18 @@
     if (d > Math.PI) d -= Math.PI * 2;
     if (d < -Math.PI) d += Math.PI * 2;
     return a + d * t;
+  }
+  function normAngle(d) {
+    d = d % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+  /* Gerak relatif kamera. Kamera duduk di +（sin yaw, cos yaw) dari pemain,
+   * jadi "depan" pemain = -(sin yaw, cos yaw). mz < 0 = maju (W / stik ke atas). */
+  function camRelativeMove(yaw, mx, mz) {
+    var fx = Math.sin(yaw), fz = Math.cos(yaw);
+    return { x: fx * mz + fz * mx, z: fz * mz - fx * mx };
   }
   function mulberry32(seed) {
     var a = seed >>> 0;
@@ -178,11 +205,12 @@
       });
       document.addEventListener('mousemove', function (e) {
         var locked = document.pointerLockElement === canvas;
+        // yaw bertambah = kamera berputar ke KIRI, jadi gerak mouse ke kanan harus MENGURANGI yaw.
         if (locked) {
-          self.look.x += e.movementX * 0.0022 * CONFIG.camera.sens;
+          self.look.x -= e.movementX * 0.0022 * CONFIG.camera.sens;
           self.look.y += e.movementY * 0.0022 * CONFIG.camera.sens;
         } else if (self._drag) {
-          self.look.x += (e.clientX - self._drag.x) * 0.004 * CONFIG.camera.sens;
+          self.look.x -= (e.clientX - self._drag.x) * 0.004 * CONFIG.camera.sens;
           self.look.y += (e.clientY - self._drag.y) * 0.004 * CONFIG.camera.sens;
           self._drag.x = e.clientX; self._drag.y = e.clientY;
         }
@@ -200,7 +228,7 @@
       var joy = document.getElementById('joystick');
       var knob = document.getElementById('joystick-knob');
       var look = document.getElementById('lookzone');
-      var enabled = ('ontouchstart' in window) || navigator.maxTouchPoints > 1;
+      var enabled = isMobileTablet();
       this.touch = enabled;
       if (!enabled) return;
       document.getElementById('touch').classList.remove('hidden');
@@ -223,7 +251,8 @@
       });
       look.addEventListener('pointermove', function (e) {
         if (self._lookId !== e.pointerId) return;
-        self.look.x += (e.clientX - self._lookLast.x) * 0.004 * CONFIG.camera.sens;
+        // Geser ke kanan = kamera berotasi kanan = kurangi yaw.
+        self.look.x -= (e.clientX - self._lookLast.x) * 0.004 * CONFIG.camera.sens;
         self.look.y += (e.clientY - self._lookLast.y) * 0.004 * CONFIG.camera.sens;
         self._lookLast = { x: e.clientX, y: e.clientY };
       });
@@ -473,6 +502,9 @@
 
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', function () { setTimeout(onResize, 250); });
+    updateRotateGate();
+    window.addEventListener('resize', updateRotateGate);
+    window.addEventListener('orientationchange', function () { setTimeout(updateRotateGate, 250); });
   }
 
   function onResize() {
@@ -973,9 +1005,10 @@
     steam.position.set(0, 1.3, 0.6);
     g.add(steam);
 
+    var inward = new THREE.Vector2(-x, -z).normalize();
     var stall = {
       no: def.no, item: item, x: x, z: z, ring: ring, steam: steam,
-      worldPos: new THREE.Vector3(x, 1.6, z + 1.8)
+      interactX: x + inward.x * 3.2, interactZ: z + inward.y * 3.2
     };
     Stalls.list.push(stall);
     Collision.addBox(x - 2.3, z - 1.6, x + 2.3, z + 1.6);
@@ -1098,14 +1131,14 @@
 
     update: function (dt) {
       var speed = Input.running ? CONFIG.player.run : CONFIG.player.walk;
+      if (Prank.active === 'sticky') speed *= 0.6;
       var mx = Input.move.x, mz = Input.move.y;
       var mag = Math.hypot(mx, mz);
       var desiredX = 0, desiredZ = 0;
       if (mag > 0.02) {
-        var camYaw = Cam.yaw;
-        var fx = Math.sin(camYaw), fz = Math.cos(camYaw);
-        desiredX = (fx * -mz + fz * mx) * speed;
-        desiredZ = (fz * -mz - fx * mx) * speed;
+        var d = camRelativeMove(Cam.yaw, mx, mz);
+        desiredX = d.x * speed;
+        desiredZ = d.z * speed;
         if (Prank.reversed) { desiredX = -desiredX; desiredZ = -desiredZ; }
       }
       this.vel.x = damp(this.vel.x, desiredX, CONFIG.player.accel, dt);
@@ -1114,6 +1147,12 @@
       this.pos.x += this.vel.x * dt;
       this.pos.z += this.vel.z * dt;
       Collision.resolve(this.pos, CONFIG.player.radius);
+      if (this.dashTime > 0) {
+        this.pos.x += this.dashDir.x * this.dashSpeed * dt;
+        this.pos.z += this.dashDir.z * this.dashSpeed * dt;
+        this.dashTime = Math.max(0, this.dashTime - dt);
+        Collision.resolve(this.pos, CONFIG.player.radius);
+      }
 
       this.moving = Math.hypot(this.vel.x, this.vel.z) > 0.4;
       if (this.moving) {
@@ -1140,6 +1179,12 @@
       if (!this.moving) { this._stepT = 0; return; }
       this._stepT = (this._stepT || 0) + dt * (Input.running ? 3.4 : 2.2);
       if (this._stepT >= 1) { this._stepT = 0; AudioEngine.playSfx('step'); }
+    },
+    dash: function () {
+      var dx = this.vel.x, dz = this.vel.z, d = Math.hypot(dx, dz);
+      if (d < 0.2) { dx = Math.sin(Cam.yaw); dz = -Math.cos(Cam.yaw); d = 1; }
+      this.dashDir = { x: dx / d, z: dz / d };
+      this.dashSpeed = 17; this.dashTime = 0.24;
     }
   };
 
@@ -1159,6 +1204,8 @@
       this.t += dt;
       var px = Player.pos.x, pz = Player.pos.z;
       var tx = px + Math.sin(this.t * 0.7) * 0.7, tz = pz + Math.cos(this.t * 0.6) * 0.7;
+      var currentOrder = OrderSystem.active[0];
+      this.target = currentOrder ? (currentOrder.picked ? currentOrder.target : { x: currentOrder.stall.interactX, z: currentOrder.stall.interactZ, name: 'Lapak ' + currentOrder.stall.no }) : null;
       if (this.target) {
         var dx = this.target.x - px, dz = this.target.z - pz;
         var d = Math.hypot(dx, dz) || 1;
@@ -1176,6 +1223,7 @@
     // yaw = 0 → kamera di selatan pemain, menghadap pusat pasar (utara). Salah satu bug yang ditemukan saat uji.
     yaw: 0, pitch: 0.22, dist: CONFIG.camera.dist,
     shake: 0, tilt: 0, autoOrbit: false, autoSpeed: 0.12, targetPos: new THREE.Vector3(),
+    _lastYaw: null, _follow: 0, _manualT: 0,
     update: function (dt, mode) {
       if (mode === 'title') {
         this.yaw += this.autoSpeed * dt;
@@ -1193,9 +1241,36 @@
       if (mode === 'end') {
         this.yaw += 0.18 * dt;
       } else {
+        var manual = Input.look.x !== 0 || Input.look.y !== 0;
         this.yaw += Input.look.x;
         this.pitch += Input.look.y;
         Input.look.x = 0; Input.look.y = 0;
+        // Jeda 0.7s setelah kamera digeser manual: jari berhenti bukan berarti
+        // pemain melepas kamera.
+        if (manual) this._manualT = 0.7;
+        else if (this._manualT > 0) this._manualT = Math.max(0, this._manualT - dt);
+
+        // Kamera mengikuti arah jalan pemain: lembut, ada dead-zone supaya
+        // strafe kecil tidak bikin kamera melayang, dan mati saat manual.
+        // Hanya aktif saat ada dorongan MAJU — kalau tidak, strafe A/D di
+        // desktop berubah jadi belok terus (kamera mengejar arah hadap).
+        var fwd = clamp(-Input.move.y, 0, 1);
+        var wantFollow = (!manual && this._manualT === 0 && Game.state === 'PLAY' &&
+          Player.moving && !Prank.reversed) ? fwd : 0;
+        this._follow = damp(this._follow, wantFollow, 2.2, dt);
+        // Koreksi hanya saat benar-benar maju. Tanpa gerbang fwd, sisa decay
+        // _follow tetap memutar yaw ketika strafe/mundur -> jalur melengkung.
+        if (this._follow > 0.01 && fwd > 0.15) {
+          var delta = normAngle(Player.facing + Math.PI - this.yaw);
+          if (Math.abs(delta) > CONFIG.camera.followDead) {
+            var want = lerpAngle(this.yaw, Player.facing + Math.PI,
+              1 - Math.exp(-CONFIG.camera.follow * this._follow * dt));
+            // Batasi laju putar supaya W+D tidak jadi spiral tak berujung.
+            var step = clamp(normAngle(want - this.yaw),
+              -CONFIG.camera.followMax * dt, CONFIG.camera.followMax * dt);
+            this.yaw += step;
+          }
+        }
       }
       this.pitch = clamp(this.pitch, CONFIG.camera.pitchMin * Math.PI / 180, CONFIG.camera.pitchMax * Math.PI / 180);
       this.dist = clamp(this.dist + Input.zoom, CONFIG.camera.distMin, CONFIG.camera.distMax);
@@ -1222,14 +1297,14 @@
     }
   };
 
-  /* ============================ 12. Systems (kerangka fase lanjut) ============================ */
+  // Gameplay systems: delivery loop, pelanggan, kunang kolektibel, skor, tutorial.
   var Stalls = {
     list: [],
     nearest: function (x, z, radius) {
       var best = null, bd = radius * radius;
       for (var i = 0; i < this.list.length; i++) {
         var s = this.list[i];
-        var d = distSqXZ(x, z, s.worldPos.x, s.worldPos.z);
+        var d = distSqXZ(x, z, s.interactX, s.interactZ);
         if (d < bd) { bd = d; best = s; }
       }
       return best;
@@ -1238,26 +1313,324 @@
       for (var i = 0; i < this.list.length; i++) {
         var s = this.list[i];
         var active = OrderSystem.stallHighlight.indexOf(s.no) >= 0;
-        s.ring.material.opacity = active ? 0.42 + Math.sin(t * 3) * 0.16 : 0.14;
+        s.ring.material.opacity = active ? 0.48 + Math.sin(t * 3) * 0.16 : 0.12;
         s.ring.material.color.setHex(active ? CONFIG.colors.amber : CONFIG.colors.neonCyan);
         s.steam.position.y = 1.3 + Math.sin(t * 1.4 + i) * 0.12;
       }
     }
   };
 
-  // Sistem pesanan/skor/prank diisi pada FASE 2-3. Struktur disiapkan agar tidak diubah ulang.
+  var Customers = {
+    list: [],
+    types: [
+      { id: 'bocil', name: 'Bocil Gaib', color: 0x3df2ff, patience: 0.8, scale: 0.8, icon: '👻' },
+      { id: 'om', name: 'Om Gembul', color: 0xffc24d, patience: 1.25, scale: 1.15, icon: '👻' }
+    ],
+    create: function (type, landmark, order) {
+      var g = new THREE.Group(), c = type.color;
+      var body = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.48, 1.25, 10),
+        new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.45, transparent: true, opacity: 0.78, flatShading: true }));
+      body.position.y = 0.65; g.add(body);
+      var head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 8),
+        new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, transparent: true, opacity: 0.8, flatShading: true }));
+      head.position.y = 1.35; g.add(head);
+      var eyeMat = new THREE.MeshBasicMaterial({ color: 0x161328 });
+      [-0.13, 0.13].forEach(function (x) {
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 6), eyeMat);
+        eye.position.set(x, 1.4, 0.32); g.add(eye);
+      });
+      g.scale.setScalar(type.scale);
+      g.position.set(landmark.x, 0, landmark.z);
+      scene.add(g);
+      var bubble = textSprite(type.icon + '  ' + order.item.icon + '  ' + Math.ceil(order.time) + 's', '#F5F3FF', 'rgba(15,12,32,.82)', 420, 96, 36);
+      bubble.position.set(landmark.x, 2.8 * type.scale, landmark.z);
+      bubble.scale.set(4.2, 0.96, 1);
+      scene.add(bubble);
+      var customer = { group: g, bubble: bubble, type: type, landmark: landmark, order: order, phase: rng() * 6.28, alive: true };
+      this.list.push(customer);
+      order.customer = customer;
+      order.target = landmark;
+      return customer;
+    },
+    remove: function (c) {
+      if (!c) return;
+      scene.remove(c.group); scene.remove(c.bubble);
+      c.alive = false;
+      var i = this.list.indexOf(c); if (i >= 0) this.list.splice(i, 1);
+    },
+    update: function (dt, t) {
+      for (var i = 0; i < this.list.length; i++) {
+        var c = this.list[i];
+        c.group.position.y = 0.12 + Math.sin(t * 2.2 + c.phase) * 0.15;
+        c.group.rotation.y = Math.sin(t * 0.6 + c.phase) * 0.16;
+        c.bubble.position.y = 2.8 * c.type.scale + Math.sin(t * 2 + c.phase) * 0.1;
+        c.bubble.material.map.needsUpdate = true;
+        // redraw timer text at a low rate in place; replace texture only when second changes
+        var sec = Math.ceil(c.order.time);
+        if (sec !== c._lastSec) {
+          c._lastSec = sec;
+          var canvasTexMap = c.bubble.material.map;
+          var ctx = canvasTexMap.image.getContext('2d');
+          ctx.clearRect(0, 0, 420, 96);
+          ctx.fillStyle = 'rgba(15,12,32,.82)'; ctx.fillRect(0, 0, 420, 96);
+          ctx.font = 'bold 36px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#F5F3FF'; ctx.fillText(c.type.icon + '  ' + c.order.item.icon + '  ' + Math.max(0, sec) + 's', 210, 48);
+          canvasTexMap.needsUpdate = true;
+        }
+      }
+    }
+  };
+
   var OrderSystem = {
-    active: [], stallHighlight: [], maxActive: 1,
-    reset: function () { this.active = []; this.stallHighlight = []; },
-    update: function () { /* FASE 2 */ }
+    active: [], stallHighlight: [], maxActive: 1, spawnTimer: 0, spawnGap: 25,
+    reset: function () {
+      this.active = []; this.stallHighlight = []; this.spawnTimer = 1.5;
+      this.spawnGap = Game.night === 1 ? 25 : Game.night === 2 ? 18 : 12;
+      this.maxActive = Game.night === 1 ? 1 : Game.night === 2 ? 2 : 3;
+      Customers.list.slice().forEach(function (c) { Customers.remove(c); });
+      UI.clearOrders();
+    },
+    create: function () {
+      if (this.active.length >= this.maxActive) return false;
+      var eligibleStalls = Stalls.list.filter(function (s) {
+        return !OrderSystem.active.some(function (o) { return o.stall.no === s.no; });
+      });
+      if (!eligibleStalls.length) return false;
+      var stall = eligibleStalls[Math.floor(rng() * eligibleStalls.length)];
+      var candidates = LANDMARKS.filter(function (lm) {
+        return !OrderSystem.active.some(function (o) { return o.target && o.target.id === lm.id; }) &&
+          distXZ(stall.x, stall.z, lm.x, lm.z) >= CONFIG.order.minDist && lm.id !== 1 && lm.id !== 2;
+      });
+      if (!candidates.length) candidates = LANDMARKS.filter(function (lm) { return lm.id !== 1 && lm.id !== 2; });
+      var target = candidates[Math.floor(rng() * candidates.length)];
+      var type = Customers.types[Math.floor(rng() * Customers.types.length)];
+      var distance = distXZ(stall.x, stall.z, target.x, target.z);
+      var limit = clamp((distance / CONFIG.player.walk) * 1.6 + 15, 35, 90) * type.patience;
+      var order = {
+        id: 'O' + Math.floor(Math.random() * 1e9), item: stall.item, stall: stall,
+        target: target, time: limit, limit: limit, picked: false, born: Game.t,
+        type: type, state: 'pickup'
+      };
+      this.active.push(order);
+      Customers.create(type, target, order);
+      AudioEngine.playSfx('notify');
+      UI.toast('📲 Pesanan baru! ' + order.item.name + ' → ' + target.name, 'good');
+      Tutorial.onOrder(order);
+      return true;
+    },
+    update: function (dt) {
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0) {
+        if (this.active.length < this.maxActive) this.create();
+        this.spawnTimer = this.spawnGap;
+      }
+      this.stallHighlight = [];
+      for (var i = this.active.length - 1; i >= 0; i--) {
+        var o = this.active[i];
+        o.time -= dt;
+        if (!o.picked) this.stallHighlight.push(o.stall.no);
+        if (o.time <= 0) {
+          UI.toast('Pesanan hangus. Rating turun 😬', 'bad');
+          AudioEngine.playSfx('prank');
+          ScoreSystem.adjustRating(CONFIG.rating.expire);
+          ScoreSystem.combo = 0;
+          Tutorial.onExpire();
+          this.remove(o);
+        }
+      }
+      UI.renderOrders();
+    },
+    remove: function (o) {
+      var i = this.active.indexOf(o); if (i >= 0) this.active.splice(i, 1);
+      Customers.remove(o.customer);
+      Bag.removeOrder(o);
+      this.spawnTimer = Math.min(this.spawnTimer, 2.2);
+      UI.renderOrders();
+    },
+    oldest: function () {
+      var best = null;
+      this.active.forEach(function (o) { if (!best || o.time < best.time) best = o; });
+      return best;
+    }
   };
+
   var ScoreSystem = {
-    rating: 5, cash: 0, combo: 0,
-    reset: function () { this.rating = 5; this.cash = 0; this.combo = 0; }
+    rating: 5, cash: 0, combo: 0, bestCombo: 0, delivered: 0, initialRating: 5,
+    reset: function () { this.rating = CONFIG.rating.start; this.cash = 0; this.combo = 0; this.bestCombo = 0; this.delivered = 0; this.initialRating = this.rating; },
+    adjustRating: function (v) {
+      this.rating = clamp(this.rating + v, 0, 5);
+      if (this.rating < CONFIG.rating.fail) Game.finish(false);
+    },
+    deliver: function (o, rewardScale) {
+      var remaining = clamp(o.time / o.limit, 0, 1);
+      var base = CONFIG.score.perItem;
+      var tip = Math.round(CONFIG.score.tipMax * remaining);
+      var mult = 1 + CONFIG.score.comboStep * Math.min(this.combo, CONFIG.score.comboMax);
+      var reward = Math.round((base + tip) * mult * (rewardScale || 1));
+      this.cash += reward;
+      this.delivered++;
+      if (!rewardScale || rewardScale === 1) {
+        this.combo++;
+        this.bestCombo = Math.max(this.bestCombo, this.combo);
+        this.adjustRating(remaining > 0.5 ? CONFIG.rating.fast : CONFIG.rating.onTime);
+      } else {
+        this.combo++;
+        this.bestCombo = Math.max(this.bestCombo, this.combo);
+        this.adjustRating(CONFIG.rating.wrongSmall);
+      }
+      UI.toast((rewardScale ? 'Treat kecil! ' : 'Bintang 5! ⭐ ') + '+' + fmtRp(reward * 100), 'good');
+      AudioEngine.playSfx('success');
+      Tutorial.onDelivered();
+      if (o.customer) Customers.remove(o.customer);
+      OrderSystem.remove(o);
+      AchievementSystem.check();
+    }
   };
-  var Prank = { reversed: false, immunity: 0, reset: function () { this.reversed = false; this.immunity = 0; } };
-  var FireflySystem = { count: 0, reset: function () { this.count = 0; } };
-  var AchievementSystem = { unlocked: Save.read('gd_ach', {}) };
+
+  var Bag = {
+    slots: [], capacity: 3,
+    reset: function () { this.slots = []; UI.renderBag(); },
+    has: function (itemId) { return this.slots.some(function (s) { return s.item.id === itemId; }); },
+    hasOrder: function (orderId) { return this.slots.some(function (s) { return s.orderId === orderId; }); },
+    add: function (order) {
+      if (this.slots.length >= this.capacity) { UI.toast('Tas penuh. Antar dulu satu pesanan.', 'bad'); return false; }
+      this.slots.push({ item: order.item, orderId: order.id });
+      order.picked = true; order.state = 'delivery';
+      Player.bagLight.intensity = 1.35;
+      UI.renderBag(); AudioEngine.playSfx('pick');
+      UI.toast(order.item.icon + ' ' + order.item.name + ' masuk tas.', 'good');
+      Tutorial.onPickup();
+      return true;
+    },
+    removeOrder: function (order) {
+      this.slots = this.slots.filter(function (s) { return s.orderId !== order.id; });
+      if (Player.bagLight) Player.bagLight.intensity = this.slots.length ? 1.35 : 0.5;
+      UI.renderBag();
+    },
+    takeAny: function () {
+      if (!this.slots.length) return null;
+      return this.slots.shift();
+    }
+  };
+
+  var FireflySystem = {
+    count: 0, positions: [], collected: [], mesh: null, matrix: new THREE.Matrix4(),
+    build: function () {
+      var n = CONFIG.fireflyCollect.total;
+      var geo = new THREE.IcosahedronGeometry(0.18, 1);
+      var mat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.mint });
+      this.mesh = new THREE.InstancedMesh(geo, mat, n);
+      this.positions = []; this.collected = [];
+      for (var i = 0; i < n; i++) {
+        var x, z;
+        if (i < 15) { x = 45 + (rng() - 0.5) * 14; z = -10 + (rng() - 0.5) * 14; }
+        else if (i < 25) { x = -35 + (rng() - 0.5) * 12; z = -30 + (rng() - 0.5) * 14; }
+        else { var a = rng() * Math.PI * 2, r = 14 + rng() * 43; x = Math.sin(a) * r; z = Math.cos(a) * r; }
+        this.positions.push({ x: x, y: 0.8 + rng() * 1.4, z: z, phase: rng() * 6.28 });
+        this.collected.push(false);
+        this.setMatrix(i, x, 0.9, z, 1);
+      }
+      this.mesh.instanceMatrix.needsUpdate = true;
+      scene.add(this.mesh);
+    },
+    setMatrix: function (i, x, y, z, scale) {
+      this.matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(scale, scale, scale));
+      this.mesh.setMatrixAt(i, this.matrix);
+    },
+    reset: function () {
+      this.count = 0;
+      for (var i = 0; i < this.positions.length; i++) {
+        this.collected[i] = false;
+        var p = this.positions[i]; this.setMatrix(i, p.x, p.y, p.z, 1);
+      }
+      if (this.mesh) this.mesh.instanceMatrix.needsUpdate = true;
+    },
+    update: function (dt, t) {
+      var p = Player.pos, r2 = CONFIG.fireflyCollect.radius * CONFIG.fireflyCollect.radius;
+      for (var i = 0; i < this.positions.length; i++) {
+        if (this.collected[i]) continue;
+        var f = this.positions[i];
+        if (distSqXZ(p.x, p.z, f.x, f.z) <= r2) {
+          this.collected[i] = true; this.count++;
+          this.setMatrix(i, 0, -100, 0, 0);
+          this.mesh.instanceMatrix.needsUpdate = true;
+          ScoreSystem.cash += CONFIG.score.fireflyScore;
+          var oldest = OrderSystem.oldest(); if (oldest) oldest.time += CONFIG.score.fireflyBonus;
+          AudioEngine.playSfx('firefly');
+          UI.toast('✨ Kunang-kunang! +' + CONFIG.score.fireflyScore * 100 + ' skor, +2 dtk pesanan', 'good', 1500);
+          AchievementSystem.check();
+        } else if (distSqXZ(p.x, p.z, f.x, f.z) < 9) {
+          // gerak berkilau, posisi instanced hanya diperbarui dekat pemain
+          this.setMatrix(i, f.x + Math.sin(t * 2 + f.phase) * 0.22, f.y + Math.sin(t * 3 + f.phase) * 0.2, f.z, 1);
+          this.mesh.instanceMatrix.needsUpdate = true;
+        }
+      }
+    }
+  };
+
+  var Tutorial = {
+    active: false, step: 0, done: false,
+    start: function () {
+      this.done = Save.read('gd_tutorial_done', false);
+      this.active = !this.done; this.step = 0;
+      if (this.active) this.showStep();
+    },
+    showStep: function () {
+      var lines = [
+        'Gerakkan kurir dengan WASD / joystick. Geser mouse atau layar kanan untuk kamera. Kunang menunjuk pesanan.',
+        'Dekati lapak yang bercahaya, tekan <kbd>E</kbd> untuk mengambil pesanan. Tas muat 3 item.',
+        'Ikuti penanda ke pelanggan, tekan <kbd>E</kbd> untuk antar. <kbd>Q</kbd> = Kasih Asal, berisiko!'
+      ];
+      if (this.active && this.step < lines.length) UI.toast('🐝 ' + lines[this.step], null, 5200);
+    },
+    onOrder: function () { if (this.active && this.step === 0) { this.step = 1; this.showStep(); } },
+    onPickup: function () { if (this.active && this.step <= 1) { this.step = 2; this.showStep(); } },
+    onDelivered: function () {
+      if (!this.active) return;
+      this.active = false; this.done = true; Save.write('gd_tutorial_done', true);
+      UI.toast('Tutorial selesai! Pasar ini milikmu, kurir. ✨', 'good', 4000);
+    },
+    onExpire: function () {},
+    skip: function () { this.active = false; this.done = true; Save.write('gd_tutorial_done', true); }
+  };
+
+  var AchievementSystem = {
+    unlocked: Save.read('gd_ach', {}),
+    check: function () {
+      var checks = [
+        ['firefly40', 'Pemburu Kunang', FireflySystem.count >= 40],
+        ['fiveStar', 'Bintang Lima Beneran', Game.state === 'END' && ScoreSystem.rating === 5],
+        ['noPrank', 'Subuh Tanpa Lecet', Game.state === 'END' && ScoreSystem.rating === ScoreSystem.initialRating]
+      ];
+      checks.forEach(function (a) {
+        if (a[2] && !AchievementSystem.unlocked[a[0]]) {
+          AchievementSystem.unlocked[a[0]] = true;
+          Save.write('gd_ach', AchievementSystem.unlocked);
+          UI.toast('🏆 Pencapaian: ' + a[1], 'good', 3500);
+        }
+      });
+    }
+  };
+
+  var Prank = {
+    reversed: false, immunity: 0, active: '', time: 0,
+    reset: function () { this.reversed = false; this.immunity = 0; this.active = ''; this.time = 0; },
+    trigger: function () {
+      if (this.immunity > 0 || this.active) return;
+      this.immunity = 15;
+      var kind = Math.floor(rng() * 4);
+      if (kind === 0) { this.active = 'reverse'; this.time = 3; this.reversed = true; UI.toast('Waduh 🙃 kontrol kebalik!', 'bad'); }
+      else if (kind === 1 && Bag.slots.length) {
+        var lost = Bag.takeAny();
+        if (lost) { var o = OrderSystem.active.find(function (x) { return x.id === lost.orderId; }); if (o) o.picked = false; }
+        this.active = 'bag'; this.time = 0.8; UI.toast('Tas bocor! Item jatuh 😭', 'bad'); UI.renderBag();
+      } else if (kind === 2) { this.active = 'tilt'; this.time = 3; Cam.tilt = 0.08; UI.toast('Layar miring! Pegangan, kurir.', 'bad'); }
+      else { this.active = 'sticky'; this.time = 4; UI.toast('Lengket! Jalan jadi pelan.', 'bad'); }
+    },
+    update: function (dt) {
+      if (this.time > 0) { this.time -= dt; if (this.time <= 0) { this.active = ''; this.reversed = false; Cam.tilt = 0; } }
+    }
+  };
 
   /* ============================ 13. UI ============================ */
   var UI = {
@@ -1270,11 +1643,11 @@
         'best-scores', 'fatal', 'fatal-msg', 'btn-mute', 'tb-action', 'tb-wrong', 'tb-dash', 'tb-lantern'];
       var self = this;
       ids.forEach(function (id) { self.el[id] = document.getElementById(id); });
-      // Fase 1: elemen gameplay lanjutan disembunyikan dulu
-      ['orders', 'bag'].forEach(function (k) { if (self.el[k]) self.el[k].style.display = 'none'; });
-      var cd = document.querySelector('.cooldowns'); if (cd) cd.style.display = 'none';
+      // Fase 2 mengaktifkan panel gameplay.
+      ['orders', 'bag'].forEach(function (k) { if (self.el[k]) self.el[k].style.display = ''; });
+      var cd = document.querySelector('.cooldowns'); if (cd) cd.style.display = '';
       ['tb-action', 'tb-wrong', 'tb-dash', 'tb-lantern'].forEach(function (k) {
-        if (self.el[k]) self.el[k].style.display = 'none';
+        if (self.el[k]) self.el[k].style.display = '';
       });
     },
     show: function (name) {
@@ -1301,14 +1674,83 @@
         setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 260);
       }, ms || CONFIG.ui.toastMs);
     },
+    clearOrders: function () { if (this.el.orders) this.el.orders.innerHTML = ''; },
+    prompt: function (text) {
+      var el = this.el.prompt;
+      if (!text) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden'); el.innerHTML = text;
+    },
+    renderOrders: function () {
+      if (!this.el.orders) return;
+      this.el.orders.innerHTML = '';
+      OrderSystem.active.forEach(function (o) {
+        var card = document.createElement('div'); card.className = 'order-card';
+        var pct = clamp(o.time / o.limit, 0, 1), color = pct > 0.5 ? '#7CFFB2' : pct > 0.22 ? '#FFC24D' : '#FF3DA5';
+        var stage = o.picked ? 'Antar ke ' + o.type.name : 'Ambil di Lapak ' + o.stall.no;
+        card.innerHTML = '<div class="order-head"><span class="order-icon">' + o.item.icon + '</span><span class="order-item">' + o.item.name + '</span></div>' +
+          '<div class="order-target">' + stage + ' → <b>' + o.target.name + '</b></div>' +
+          '<div class="order-time"><span style="width:' + (pct * 100) + '%;background:' + color + '"></span></div>' +
+          '<span class="order-tag">' + Math.max(0, Math.ceil(o.time)) + 's</span>';
+        this.el.orders.appendChild(card);
+      }, this);
+    },
+    renderBag: function () {
+      if (!this.el.bag) return;
+      this.el.bag.innerHTML = '';
+      for (var i = 0; i < Bag.capacity; i++) {
+        var slot = document.createElement('div');
+        var item = Bag.slots[i];
+        slot.className = 'slot' + (item ? ' filled' : '');
+        slot.textContent = item ? item.item.icon : '·';
+        slot.title = item ? item.item.name : 'Kosong';
+        this.el.bag.appendChild(slot);
+      }
+    },
+    renderMarkers: function () {
+      var host = this.el.markers, arrows = this.el['edge-arrows'];
+      if (!host || Game.state !== 'PLAY') { host.innerHTML = ''; arrows.innerHTML = ''; return; }
+      host.innerHTML = ''; arrows.innerHTML = '';
+      var targets = [];
+      OrderSystem.active.forEach(function (o) {
+        var p = o.picked ? o.target : { x: o.stall.interactX, z: o.stall.interactZ, name: 'Lapak ' + o.stall.no };
+        targets.push({ x: p.x, z: p.z, name: p.name, icon: o.picked ? '👻' : o.item.icon, wrong: false });
+      });
+      if (!targets.length) {
+        var nearest = Stalls.list[0];
+        if (nearest) targets.push({ x: nearest.interactX, z: nearest.interactZ, name: 'Jelajahi pasar', icon: '🐝', wrong: false });
+      }
+      targets.slice(0, 2).forEach(function (t) {
+        var v = new THREE.Vector3(t.x, 2.2, t.z).project(camera);
+        var sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+        var sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        var onScreen = v.z > -1 && v.z < 1 && sx > 30 && sx < window.innerWidth - 30 && sy > 70 && sy < window.innerHeight - 50;
+        if (onScreen) {
+          var d = document.createElement('div'); d.className = 'marker';
+          d.style.left = sx + 'px'; d.style.top = sy + 'px';
+          d.innerHTML = '<span class="pin">' + t.icon + '</span><span>' + t.name + '</span><span class="dist">' + Math.round(distXZ(Player.pos.x, Player.pos.z, t.x, t.z)) + ' m</span>';
+          host.appendChild(d);
+        } else {
+          var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+          var dx = sx - cx, dy = sy - cy;
+          if (v.z < 0) { dx = -dx; dy = -dy; }
+          var len = Math.hypot(dx, dy) || 1;
+          var rad = Math.min(window.innerWidth, window.innerHeight) * 0.39;
+          var a = document.createElement('div'); a.className = 'arrow';
+          a.style.left = clamp(cx + dx / len * rad, 24, window.innerWidth - 24) + 'px';
+          a.style.top = clamp(cy + dy / len * rad, 64, window.innerHeight - 64) + 'px';
+          a.style.transform = 'translate(-50%,-50%) rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI + 90) + 'deg)';
+          a.title = t.name; arrows.appendChild(a);
+        }
+      });
+    },
     setHudVisible: function (v) { this.el.hud.classList.toggle('hidden', !v); },
     update: function (dt, p) {
       this.el.rating.textContent = ScoreSystem.rating.toFixed(2);
-      this.el.cash.textContent = fmtRp(ScoreSystem.cash);
+      this.el.cash.textContent = fmtRp(ScoreSystem.cash * 100);
       var comboEl = this.el.combo;
       if (ScoreSystem.combo >= 2) {
         comboEl.classList.remove('hidden');
-        comboEl.textContent = 'x' + (1 + 0.25 * Math.min(ScoreSystem.combo, 16)).toFixed(1);
+        comboEl.textContent = 'x' + (1 + CONFIG.score.comboStep * Math.min(ScoreSystem.combo, CONFIG.score.comboMax)).toFixed(1);
       } else comboEl.classList.add('hidden');
       var pct = clamp(p, 0, 1) * 100;
       this.el['dawn-fill'].style.width = pct + '%';
@@ -1317,31 +1759,92 @@
       var hours = 23 + p * 6;
       var hh = Math.floor(hours) % 24, mm = Math.floor((hours % 1) * 60);
       this.el.clock.textContent = pad2(hh) + ':' + pad2(mm);
+      this.renderOrders(); this.renderBag(); this.renderMarkers(); this.updatePrompt();
     },
-    prompt: function (text) {
-      var el = this.el.prompt;
-      if (!text) { el.classList.add('hidden'); return; }
-      el.classList.remove('hidden');
-      el.innerHTML = text;
+    updatePrompt: function () {
+      if (Game.state !== 'PLAY') { this.prompt(''); return; }
+      var stall = Stalls.nearest(Player.pos.x, Player.pos.z, CONFIG.interact.stall + 0.7);
+      var customer = null, cd = CONFIG.interact.customer * CONFIG.interact.customer;
+      Customers.list.forEach(function (c) {
+        var d = distSqXZ(Player.pos.x, Player.pos.z, c.landmark.x, c.landmark.z);
+        if (d < cd) { cd = d; customer = c; }
+      });
+      if (customer && Bag.hasOrder(customer.order.id)) this.prompt('<kbd>E</kbd> Antar ' + customer.type.name);
+      else if (stall && OrderSystem.active.some(function (o) { return o.stall.no === stall.no && !o.picked; })) this.prompt('<kbd>E</kbd> Ambil ' + stall.item.name);
+      else this.prompt('');
+    },
+    contextualAction: function () {
+      var stall = Stalls.nearest(Player.pos.x, Player.pos.z, CONFIG.interact.stall + 0.7);
+      if (stall) {
+        var order = OrderSystem.active.find(function (o) { return o.stall.no === stall.no && !o.picked; });
+        if (order) { Bag.add(order); return; }
+      }
+      var customer = null, best = CONFIG.interact.customer * CONFIG.interact.customer;
+      Customers.list.forEach(function (c) {
+        var d = distSqXZ(Player.pos.x, Player.pos.z, c.landmark.x, c.landmark.z);
+        if (d < best) { best = d; customer = c; }
+      });
+      if (customer && Bag.hasOrder(customer.order.id)) { ScoreSystem.deliver(customer.order, 1); return; }
+      if (stall) UI.toast('Lapak ini bukan buat pesananmu.', 'bad', 1300);
+      else if (customer) UI.toast('Itemnya belum ada di tas.', 'bad', 1300);
+    },
+    wrongGive: function () {
+      var customer = null, best = CONFIG.interact.customer * CONFIG.interact.customer;
+      Customers.list.forEach(function (c) {
+        var d = distSqXZ(Player.pos.x, Player.pos.z, c.landmark.x, c.landmark.z);
+        if (d < best) { best = d; customer = c; }
+      });
+      if (!customer) { UI.toast('Dekati pelanggan dulu.', null, 1200); return; }
+      var item = Bag.takeAny();
+      if (!item) { UI.toast('Tas kosong. Ambil pesanan dulu.', 'bad'); return; }
+      var carriedOrder = OrderSystem.active.find(function (o) { return o.id === item.orderId; });
+      if (carriedOrder) carriedOrder.picked = false;
+      Player.bagLight.intensity = Bag.slots.length ? 1.35 : 0.5;
+      if (rng() < CONFIG.wrongGive.successChance) ScoreSystem.deliver(customer.order, CONFIG.wrongGive.rewardScale);
+      else {
+        UI.toast('TRICK! Pesanan salah 😭', 'bad');
+        AudioEngine.playSfx('prank'); ScoreSystem.combo = 0;
+        ScoreSystem.adjustRating(CONFIG.rating.trick);
+        Prank.trigger();
+      }
+      this.renderBag();
+    },
+    saveScoreCard: function () {
+      var c = document.createElement('canvas'); c.width = 900; c.height = 520;
+      var g = c.getContext('2d');
+      var grad = g.createLinearGradient(0, 0, 900, 520); grad.addColorStop(0, '#10152f'); grad.addColorStop(1, '#421c50');
+      g.fillStyle = grad; g.fillRect(0, 0, c.width, c.height);
+      g.strokeStyle = '#7CFFB2'; g.lineWidth = 4; g.strokeRect(20, 20, 860, 480);
+      g.fillStyle = '#F5F3FF'; g.textAlign = 'center'; g.font = '900 54px system-ui'; g.fillText('GHOSTDASH', 450, 100);
+      g.font = '700 26px system-ui'; g.fillStyle = '#7CFFB2'; g.fillText('Pasar Malam Arwah · Malam ' + Game.night, 450, 148);
+      g.fillStyle = '#FFC24D'; g.font = '900 62px system-ui'; g.fillText(fmtRp(ScoreSystem.cash * 100), 450, 250);
+      g.fillStyle = '#F5F3FF'; g.font = '600 26px system-ui';
+      g.fillText('⭐ ' + ScoreSystem.rating.toFixed(2) + '     Pesanan: ' + ScoreSystem.delivered + '     Combo: x' + ScoreSystem.bestCombo, 450, 320);
+      g.fillText('Kunang-kunang: ' + FireflySystem.count + '     Grade: ' + (document.getElementById('end-grade').textContent || '—'), 450, 375);
+      g.font = 'italic 20px system-ui'; g.fillStyle = 'rgba(245,243,255,.72)'; g.fillText('“Antar pesanan arwah sebelum subuh.”', 450, 445);
+      var a = document.createElement('a'); a.download = 'ghostdash-skor.png'; a.href = c.toDataURL('image/png'); a.click();
     }
   };
 
   /* ============================ 14. Game / State machine ============================ */
   var Game = {
-    state: 'BOOT', t: 0, progress: 0, night: 1, nightDur: CONFIG.night.durM1, fps: 0,
+    state: 'BOOT', t: 0, progress: 0, night: 1, nightDur: CONFIG.night.durM1, fps: 0, endlessTime: 0,
     reset: function (night) {
       this.night = night || 1;
       this.nightDur = night === 2 ? CONFIG.night.durM2 : (night === 3 || night === 'endless') ? CONFIG.night.durM3 : CONFIG.night.durM1;
       this.progress = 0;
       this.t = 0;
+      this.endlessTime = 0;
       ScoreSystem.reset();
       OrderSystem.reset();
       Prank.reset();
       FireflySystem.reset();
+      Bag.reset();
       Player.pos.set(CONFIG.spawn.x, 0, CONFIG.spawn.z);
       Player.vel.set(0, 0, 0);
       if (Player.group) Player.group.position.set(CONFIG.spawn.x, 0, CONFIG.spawn.z);
-      Cam.yaw = Math.PI; Cam.pitch = 0.22; Cam.dist = CONFIG.camera.dist;
+      Cam.yaw = 0; Cam.pitch = 0.22; Cam.dist = CONFIG.camera.dist;
+      Tutorial.start();
     },
     setState: function (s) {
       var prev = this.state;
@@ -1349,8 +1852,28 @@
       if (s === 'TITLE') { UI.show('title'); UI.setHudVisible(false); Cam.autoOrbit = true; }
       if (s === 'PLAY') { UI.hideAll(); UI.setHudVisible(true); Cam.autoOrbit = false; }
       if (s === 'PAUSE') { UI.show('pause'); }
-      if (s === 'END') { UI.show('end'); }
+      if (s === 'END') { UI.show('end'); UI.setHudVisible(false); }
       if (prev === 'PAUSE' && s === 'PLAY') UI.hideAll();
+    },
+    finish: function (won) {
+      if (this.state === 'END') return;
+      this.state = 'END';
+      var grade = this.night === 'endless' ? '∞' : ScoreSystem.cash >= (CONFIG.score.gradeS[this.night] || Infinity) / 100 ? 'S' : ScoreSystem.cash >= (CONFIG.score.gradeS[this.night] || Infinity) / 200 ? 'A' : ScoreSystem.cash > 0 ? 'B' : 'C';
+      document.getElementById('end-title').textContent = won ? 'SUBUH! Shift selesai ☀️' : 'Akun Disuspend 💀';
+      document.getElementById('end-sub').textContent = won ? 'Ayam berkokok. Pasar mulai menghilang...' : 'Ratingmu jatuh di bawah 2.0. Mungkin arwahnya salah download aplikasi.';
+      document.getElementById('end-grade').textContent = grade;
+      document.getElementById('end-stats').innerHTML =
+        '<div>Penghasilan<b>' + fmtRp(ScoreSystem.cash * 100) + '</b></div>' +
+        '<div>Pesanan sukses<b>' + ScoreSystem.delivered + '</b></div>' +
+        '<div>Combo terbaik<b>x' + ScoreSystem.bestCombo + '</b></div>' +
+        '<div>Kunang terkumpul<b>' + FireflySystem.count + '</b></div>' +
+        '<div>Rating akhir<b>⭐ ' + ScoreSystem.rating.toFixed(2) + '</b></div>' +
+        '<div>Grade<b>' + grade + '</b></div>';
+      var best = Save.read('gd_best', {});
+      if (ScoreSystem.cash > (best[this.night] || 0)) { best[this.night] = ScoreSystem.cash; Save.write('gd_best', best); }
+      if (won && typeof this.night === 'number') Save.write('gd_unlocked', Math.max(Save.read('gd_unlocked', 1), Math.min(3, this.night + 1)));
+      AchievementSystem.check();
+      UI.show('end'); UI.setHudVisible(false); Cam.autoOrbit = true;
     }
   };
 
@@ -1375,15 +1898,16 @@
       if (Game.state === 'PLAY') {
         Player.update(dt);
         Player.stepSound(dt);
-        Game.progress += dt / Game.nightDur;
-        if (Game.progress >= 1) {
-          Game.progress = 0; // FASE 1: siklus langit diputar ulang untuk eksplorasi
-          UI.toast('Ayam berkokok. Pasar mulai hilang... lalu kembali. 🌅');
-          AudioEngine.playSfx('notify');
-        }
+        if (Game.night === 'endless') Game.endlessTime += dt;
+        else Game.progress = Math.min(1, Game.progress + dt / Game.nightDur);
+        OrderSystem.update(dt);
+        Customers.update(dt, Game.t);
+        FireflySystem.update(dt, Game.t);
         handleHotkeys();
+        if (Game.night !== 'endless' && Game.progress >= 1) Game.finish(true);
       }
       Prank.immunity = Math.max(0, Prank.immunity - dt);
+      Prank.update(dt);
       Companion.update(dt);
       Stalls.update(dt, Game.t);
       World.update(dt, Game.t);
@@ -1398,11 +1922,10 @@
   }
 
   function handleHotkeys() {
-    if (Input.consume('actionPressed') || Input.consume('wrongPressed') || Input.consume('dashPressed')) {
-      // Aksi gameplay diaktifkan pada FASE 2-3.
-      UI.toast('Aksi gameplay dibuka di fase berikutnya.', null, 1200);
-    }
-    if (Input.consume('lanternPressed')) UI.toast('Lentera Kilat dibuka di fase berikutnya.', null, 1200);
+    if (Input.consume('actionPressed')) UI.contextualAction();
+    if (Input.consume('wrongPressed')) UI.wrongGive();
+    if (Input.consume('dashPressed')) Player.dash();
+    if (Input.consume('lanternPressed')) UI.toast('Lentera kilat lengkap di Fase 3.', null, 1200);
   }
 
   function updateDebug(dt) {
@@ -1469,6 +1992,15 @@
     }
   }
   window.__fatal = fatal;
+  // Hook uji otomatis (hanya saat ?debug=1): baca state tanpa menyentuh frame loop.
+  if (CONFIG.debug) window.__probe = function () {
+    return {
+      state: Game.state, pos: { x: Player.pos.x, z: Player.pos.z },
+      facing: Player.facing, camYaw: Cam.yaw, follow: Cam._follow,
+      moving: Player.moving, move: { x: Input.move.x, y: Input.move.y },
+      errs: window.__errs.length
+    };
+  };
 
   function bindMenu() {
     var onClick = function (id, fn) {
@@ -1481,6 +2013,7 @@
       document.getElementById('night-select').classList.toggle('hidden');
       renderNights();
     });
+    onClick('btn-close-night', function () { document.getElementById('night-select').classList.add('hidden'); });
     onClick('btn-char', function () {
       var i = (charOrder.indexOf(Player.kind) + 1) % charOrder.length;
       Player.build(charOrder[i]);
@@ -1506,6 +2039,13 @@
     onClick('btn-resume', function () { Game.setState('PLAY'); });
     onClick('btn-restart', function () { Game.reset(Game.night); Game.setState('PLAY'); });
     onClick('btn-quit', function () { Game.setState('TITLE'); });
+    onClick('btn-again', function () { Game.reset(Game.night); Game.setState('PLAY'); });
+    onClick('btn-night', function () {
+      Game.setState('TITLE');
+      document.getElementById('night-select').classList.remove('hidden');
+      renderNights();
+    });
+    onClick('btn-card', function () { UI.saveScoreCard(); });
 
     document.getElementById('set-volume').addEventListener('input', function (e) {
       Settings.volume = e.target.value / 100; Settings.apply();
@@ -1549,7 +2089,7 @@
     ];
     host.innerHTML = '';
     defs.forEach(function (d) {
-      var locked = typeof d.key === 'number' && d.key > unlocked;
+      var locked = (typeof d.key === 'number' && d.key > unlocked) || (d.key === 'endless' && unlocked < 3);
       var b = document.createElement('button');
       b.className = 'night-btn';
       if (locked) b.disabled = true;
@@ -1583,6 +2123,7 @@
     UI.init();
     initSky();
     World.build();
+    FireflySystem.build();
     Player.build(Save.read('gd_char', 'raka'));
     Companion.build();
     Input.init(canvas, document.getElementById('lookzone'));

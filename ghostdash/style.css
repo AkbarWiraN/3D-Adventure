@@ -279,6 +279,20 @@ html, body {
 .tbtn.small { width: 62px; height: 62px; font-size: 9px; }
 .tbtn:active { transform: scale(.94); }
 
+/* Mobile/tablet: enforce a wide game viewport; landscape unlocks the UI. */
+#rotate-gate { display: none; }
+@media (orientation: portrait) and (max-width: 1024px) {
+  #rotate-gate {
+    position: fixed; inset: 0; z-index: 100;
+    display: grid; place-items: center; padding: 24px;
+    background: #0B1026; color: var(--text); text-align: center;
+  }
+  #rotate-gate h2 { margin: 14px 0 6px; color: var(--mint); }
+  #rotate-gate p { margin: 0; max-width: 28em; line-height: 1.5; opacity: .82; }
+  .rotate-icon { font-size: 64px; line-height: 1; animation: rotate-hint 1.8s ease-in-out infinite; }
+  @keyframes rotate-hint { 50% { transform: rotate(90deg); } }
+}
+
 /* ---------- overlays ---------- */
 .overlay {
   position: fixed; inset: 0; z-index: 20;
