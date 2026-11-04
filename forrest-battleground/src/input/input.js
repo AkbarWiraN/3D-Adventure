@@ -93,6 +93,21 @@ export class InputManager {
     });
 
     // -------------------------------------------------- touch (mobile)
+    const bindButton = (id, down, up = null) => {
+      const node = document.getElementById(id); if (!node) return;
+      this._add(node, 'pointerdown', (e) => { e.preventDefault(); if (this.enabled) down(); });
+      if (up) { this._add(node, 'pointerup', (e) => { e.preventDefault(); up(); }); this._add(node, 'pointercancel', up); }
+    };
+    bindButton('mb-attack', () => emit('input:attack'));
+    bindButton('mb-interact', () => emit('input:interact'));
+    bindButton('mb-throw', () => emit('input:throw'));
+    bindButton('mb-drop', () => emit('input:drop'));
+    bindButton('mb-aim', () => { this.aiming=true; emit('input:aim',true); }, () => { this.aiming=false; emit('input:aim',false); });
+    bindButton('mb-jump', () => { this.jumpQueued=true; });
+    bindButton('mb-prone', () => { this.proneToggled=true; });
+    bindButton('mb-sprint', () => { this.sprint=true; }, () => { this.sprint=false; });
+    bindButton('mb-map', () => emit('ui:toggleMap'));
+    bindButton('mb-pause', () => emit('ui:togglePause'));
     if (this.joystickZone) {
       this._add(this.joystickZone, 'pointerdown', (e) => this._joyDown(e));
       this._add(this.joystickZone, 'pointermove', (e) => this._joyMove(e));
@@ -105,7 +120,7 @@ export class InputManager {
         if (!this.enabled) return;
         this.lookPointerId = e.pointerId;
         this.lastLook = { x: e.clientX, y: e.clientY };
-        this.lookZone.setPointerCapture?.(e.pointerId);
+        try { this.lookZone.setPointerCapture?.(e.pointerId); } catch { /* synthetic/expired pointer */ }
       });
       this._add(this.lookZone, 'pointermove', (e) => {
         if (e.pointerId !== this.lookPointerId) return;
@@ -118,7 +133,7 @@ export class InputManager {
       const endLook = (e) => {
         if (e.pointerId === this.lookPointerId) {
           this.lookPointerId = null;
-          this.lookZone.releasePointerCapture?.(e.pointerId);
+          try { this.lookZone.releasePointerCapture?.(e.pointerId); } catch { /* already released */ }
         }
       };
       this._add(this.lookZone, 'pointerup', endLook);
@@ -135,7 +150,7 @@ export class InputManager {
     const rect = this.joystickZone.getBoundingClientRect();
     // Origin = titik sentuh pertama (lebih nyaman daripada pusat tetap).
     this.joyOrigin = { x: e.clientX, y: e.clientY };
-    this.joystickZone.setPointerCapture?.(e.pointerId);
+    try { this.joystickZone.setPointerCapture?.(e.pointerId); } catch { /* synthetic/expired pointer */ }
     this._updateJoy(e.clientX, e.clientY, rect);
   }
 
@@ -153,7 +168,7 @@ export class InputManager {
     this.moveZ = 0;
     this.sprint = false;
     if (this.joystickKnob) this.joystickKnob.style.transform = 'translate(0px, 0px)';
-    this.joystickZone.releasePointerCapture?.(e.pointerId);
+    try { this.joystickZone.releasePointerCapture?.(e.pointerId); } catch { /* already released */ }
   }
 
   _updateJoy(clientX, clientY, rect) {

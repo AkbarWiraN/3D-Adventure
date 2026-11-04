@@ -73,7 +73,22 @@ Legenda: `[ ]` belum · `[~]` sedang jalan · `[x]` selesai+terbukti · `[!]` ga
 ---
 
 ## FASE 2 — Solo combat + register/login/lobby/leaderboard REST nyata
-_(belum dimulai)_
+_(IN PROGRESS — browser QA nyata LULUS: Chrome headless + WebGL SwiftShader, `server/tests/browser-smoke.mjs` → VERDICT PASS)_
+
+Terverifikasi di browser sungguhan (bukan klaim):
+- Solo guest: loot POI → pedang → 5 hit valid (100→80→60→40→20→0) → kill feed "Bot dikalahkan"
+- Pemain mati oleh bot → overlay kematian → respawn otomatis 3 s → HP 100 + tangan kosong
+- Keluar ke Lobby: sesi null, HUD hidden, 0 listener bus tersisa (tidak bocor)
+- Register → login → lobby: onlineCount 0/8 (authoritative, bukan hitungan akun), peringkat sendiri, leaderboard kosong, tombol Keluar tampil, Solo tetap bisa
+- Backend 23/23, unit 42/42, `npm run build:pages` 35 file 2.05 MB audit lolos
+
+Bug nyata ditemukan lewat QA browser ini dan sudah diperbaiki:
+1. Respawn loop — `die()` menjaga `player.dead` sehingga `_respawnAt` tak pernah di-set saat pemicu dari luar; sekarang idempoten lewat `_respawnAt`
+2. `aimDirection()` memakai `_look` dari frame render lama → bidikan meleset setelah gerak/teleport; sekarang ambil orientasi kamera terkini
+3. Kapsul bot memakai y absolut 0.9 padat di terrain; sekarang `terrainHeight(x,z)+0.9`
+4. Loot di dalam rumah terhalang dinding (LOS bekerja) — uji memakai loot POI luar
+
+BELUM TERBUKTI: HP asli (FPS/panas/baterai), multitouch sentuh nyata, safe-area notch, CPU/RSS produksi, deploy. Lihat PENDING_MANUAL.
 
 ## FASE 3 — Multiplayer authoritative WSS + leaderboard kill/death + exit/rejoin
 _(belum dimulai)_

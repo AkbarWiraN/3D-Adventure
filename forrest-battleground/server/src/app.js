@@ -5,6 +5,10 @@ import cors from '@fastify/cors';
 import { config } from './config.js';
 import { createOriginGuard } from './security/origin.js';
 import { registerSystemRoutes } from './http/routes/system.js';
+import { registerAuthRoutes } from './http/routes/auth.js';
+import { registerUserRoutes } from './http/routes/users.js';
+import { registerMapRoutes } from './http/routes/maps.js';
+import { registerLeaderboardRoutes } from './http/routes/leaderboard.js';
 
 export async function buildApp(opts = {}) {
   const app = Fastify({
@@ -23,7 +27,7 @@ export async function buildApp(opts = {}) {
       },
     },
     genReqId: () => crypto.randomUUID(),
-    trustProxy: true,
+    trustProxy: '127.0.0.1',
     bodyLimit: 16 * 1024, // cap body request (prompt.md §5.2)
     ...opts,
   });
@@ -77,5 +81,9 @@ export async function buildApp(opts = {}) {
   });
 
   await registerSystemRoutes(app);
+  await registerAuthRoutes(app);
+  await registerUserRoutes(app);
+  await registerMapRoutes(app);
+  await registerLeaderboardRoutes(app);
   return app;
 }

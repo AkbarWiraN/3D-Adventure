@@ -31,6 +31,14 @@
       <p class="subtitle">Ancient Survival</p>
       <p class="dim small">Hutan purba seluas 1 km². Cari perlengkapan, bertahan hidup, jangan mati.</p>
 
+      <div id="account-panel" class="account-panel">
+        <label class="field"><span>Username</span><input id="auth-username" maxlength="20" autocomplete="username"></label>
+        <label class="field"><span>Password</span><input id="auth-password" type="password" maxlength="128" autocomplete="current-password"></label>
+        <div class="row"><button id="btn-register" class="btn">Daftar</button><button id="btn-login" class="btn primary">Masuk</button><button id="btn-logout" class="btn hidden">Keluar</button></div>
+        <p id="auth-status" class="dim tiny" aria-live="polite">Login diperlukan untuk melihat lobi.</p>
+        <label class="field"><span>Karakter</span><select id="auth-character"><option value="male">Laki-laki</option><option value="female">Perempuan</option></select></label>
+        <div id="lobby-data" class="dim tiny"></div>
+      </div>
       <div class="menu">
         <button id="btn-solo" class="btn primary">Main Solo</button>
         <button id="btn-online" class="btn" disabled title="Belum tersedia di Fase 1">Main Online</button>
@@ -97,6 +105,9 @@
       </div>
     </div>
   </div>
+  <div id="screen-death" class="overlay hidden" role="alertdialog" aria-labelledby="death-title">
+    <div class="panel"><h2 id="death-title">Kamu Tumbang</h2><p id="death-countdown" aria-live="polite">Respawn dalam 3 detik</p><button id="btn-death-exit" class="btn danger">Keluar ke Lobby</button></div>
+  </div>
 
   <!-- ===================== Peta penuh ===================== -->
   <div id="screen-map" class="overlay hidden">
@@ -156,6 +167,8 @@
         <button id="mb-sprint" class="mbtn small" aria-label="Lari">LARI</button>
         <button id="mb-prone" class="mbtn small" aria-label="Tiarap">TIARAP</button>
         <button id="mb-interact" class="mbtn small hidden" aria-label="Ambil">AMBIL</button>
+        <button id="mb-throw" class="mbtn small" aria-label="Lempar">LEMPAR</button>
+        <button id="mb-drop" class="mbtn small" aria-label="Jatuhkan">JATUHKAN</button>
       </div>
       <div id="mobile-topright">
         <button id="mb-map" class="mbtn tiny" aria-label="Peta">PETA</button>

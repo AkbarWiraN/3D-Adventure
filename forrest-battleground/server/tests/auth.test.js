@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fb-auth-'));
+process.env.DATABASE_FILE=path.join(dir,'test.sqlite');process.env.AUTH_SECRET='test-secret-key-with-at-least-32-bytes';process.env.FRONTEND_ORIGINS='https://akbarwiran.github.io';
+const {buildApp}=await import('../src/app.js');const {closeDb}=await import('../src/persistence/db.js');const {runMigrations}=await import('../src/persistence/migrate.js');
+const app=await buildApp();runMigrations();await app.listen({host:'127.0.0.1',port:0});const base=`http://127.0.0.1:${app.server.address().port}`, origin='https://akbarwiran.github.io';
+const req=(p,{method='GET',token,body}={})=>fetch(base+p,{method,headers:{Origin:origin,...(body?{'Content-Type':'application/json'}:{}),...(token?{Authorization:`Bearer ${token}`}:{})},body:body?JSON.stringify(body):undefined});
+test('auth/profile/lobby/leaderboard contracts; no client stat writes',async(t)=>{
+ t.after(async()=>{await app.close();closeDb();fs.rmSync(dir,{recursive:true,force:true});});
+ assert.equal((await req('/api/v1/maps')).status,401);
+ const created=await req('/api/v1/auth/register',{method:'POST',body:{username:'Tester_1',password:'long-enough-password',character:'female'}});assert.equal(created.status,201);const {token,user}=await created.json();assert.equal(user.character,'female');assert.equal(user.kills,0);assert.equal('password_hash' in user,false);
+ assert.equal((await req('/api/v1/auth/register',{method:'POST',body:{username:'tester_1',password:'long-enough-password'}})).status,409);
+ assert.equal((await req('/api/v1/auth/login',{method:'POST',body:{username:'Tester_1',password:'wrong-password'}})).status,401);
+ const profile=await req('/api/v1/users/me',{token});assert.equal(profile.status,200);assert.equal((await profile.json()).user.username,'Tester_1');
+ assert.equal((await req('/api/v1/users/me',{method:'PATCH',token,body:{kills:999}})).status,400);
+ assert.equal((await req('/api/v1/users/me',{method:'PATCH',token,body:{character:'female'}})).status,200);
+ const status=await req('/api/v1/maps/forest/status',{token});assert.equal((await status.json()).status.onlineCount,0);
+ const board=await req('/api/v1/leaderboard?limit=10',{token});assert.equal((await board.json()).entries.length,0);
+ assert.equal((await req('/api/v1/leaderboard',{method:'POST',token,body:{kills:999}})).status,405);
+ assert.equal((await req('/api/v1/leaderboard',{token:'bad'})).status,401);
+});

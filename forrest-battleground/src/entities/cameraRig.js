@@ -115,7 +115,11 @@ export class CameraRig {
 
   /** Arah tembak yang dipakai sistem senjata (dari kamera ke titik pandang). */
   aimDirection() {
-    const d = new THREE.Vector3().subVectors(this._look, this.camera.position).normalize();
+    // Ambil orientasi kamera SEKARANG (bukan _look tersimpan): setelah gerak
+    // cepat/teleport, _look masih dari frame render lama dan bidikan meleset.
+    this.camera.updateMatrixWorld();
+    const d = new THREE.Vector3();
+    this.camera.getWorldDirection(d);
     return { x: d.x, y: d.y, z: d.z };
   }
 

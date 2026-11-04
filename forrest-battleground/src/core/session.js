@@ -21,6 +21,7 @@ import { buildColliderGrid } from '../shared/movement.js';
 import { terrainHeight } from '../shared/terrain.js';
 import { PLAYER } from '../shared/constants.js';
 import { disposeGroup } from '../utils/dispose.js';
+import { SoloCombat } from '../gameplay/combat.js';
 
 export class SoloSession {
   constructor({ canvas, screens, character = 'male' }) {
@@ -65,11 +66,13 @@ export class SoloSession {
       document.getElementById('minimap'),
       document.getElementById('bigmap')
     );
+    this.minimap.installInput();
 
     this._unsubs = [];
     this._mouseLook = { x: 0 };
     this._installEvents();
     this._spawn();
+    this.combat = new SoloCombat(this);
   }
 
   _installEvents() {
@@ -91,6 +94,7 @@ export class SoloSession {
 
     // Jeda
     this._unsubs.push(on('ui:togglePause', () => emit('ui:pause')));
+    this._unsubs.push(on('input:death', () => { this.hud.show(false); document.getElementById('screen-death')?.classList.remove('hidden'); }));
   }
 
   _spawn() {
@@ -121,6 +125,9 @@ export class SoloSession {
     if (this.paused || this.disposed) return;
 
     const inputSnap = this.input.snapshot();
+    this.combat?.update(dt);
+    if (this._respawnAt && Date.now() >= this._respawnAt) { this._respawnAt = 0; this.combat.respawn(); }
+    if (this.player.dead) return;
     // Yaw kamera sebelum update (dipakai untuk gerak relatif kamera).
     const cameraYaw = this.cameraRig.yaw + this.cameraRig.userYawOffset;
 
@@ -147,7 +154,7 @@ export class SoloSession {
 
     // HUD di-update dengan diff (bukan rebuild DOM).
     this.hud.setHp(this.player.hp, PLAYER.HP_MAX);
-    this.hud.setWeapon('Tangan Kosong', null);
+    this.combat?.updateHud();
     this.hud.setCooldown(true);
 
     // Minimap 8 Hz.
@@ -183,6 +190,8 @@ export class SoloSession {
 
     // Dunia chunk
     this.worldManager.disposeAll();
+    this.combat?.dispose();
+    this.minimap?.dispose();
 
     // Pemain + bangunan
     disposeGroup(this.player.object3D);

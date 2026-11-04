@@ -6,9 +6,11 @@ import { emit, on } from './core/bus.js';
 import { Screens } from './ui/screens.js';
 import { SoloSession } from './core/session.js';
 import { loadSettings, saveSettings } from './storage/settings.js';
+import { Lobby } from './ui/lobby.js';
 
 const canvas = document.getElementById('gl');
 const screens = new Screens();
+const lobby = new Lobby();
 
 // Sesi aktif (null saat di lobby)
 let session = null;
@@ -17,6 +19,7 @@ let started = false;
 // ------------------------------------------------------------ error global
 window.addEventListener('error', (e) => {
   console.error('[global error]', e.error || e.message);
+  const fatal=document.getElementById('fatal-msg');if(fatal)fatal.textContent=String(e.error?.stack||e.message||'Kesalahan JavaScript').slice(0,1000);
 });
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[unhandled rejection]', e.reason);
@@ -24,11 +27,6 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // ------------------------------------------------------------- boot awal
 function boot() {
-  // Deteksi WebGL sebelum mencoba membuat apa pun.
-  if (!isWebGLAvailable()) {
-    screens.showFatal('Browser ini tidak mendukung WebGL. Game tidak dapat dijalankan.');
-    return;
-  }
   screens.showLoading(0.35, 'Menyiapkan mesin 3D');
   screens.hideLoading();
   screens.show('title');
@@ -45,12 +43,8 @@ function boot() {
 }
 
 function isWebGLAvailable() {
-  try {
-    const c = document.createElement('canvas');
-    return Boolean(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
-  } catch {
-    return false;
-  }
+  // Do not create a probe context: browsers often limit simultaneous WebGL contexts.
+  return Boolean(window.WebGLRenderingContext);
 }
 
 // ---------------------------------------------------------------- transisi
@@ -65,7 +59,7 @@ function startSolo() {
           session = new SoloSession({
             canvas,
             screens,
-            character: settings.lastCharacter || 'male',
+            character: settings.lastCharacter || lobby.currentCharacter || 'male',
           });
           screens.hideAll();
           session.start();
@@ -110,6 +104,7 @@ function pauseGame() {
 // bus events (didaftarkan via import emit)
 on('ui:startSolo', startSolo);
 on('ui:exitSolo', exitSolo);
+document.getElementById('btn-death-exit')?.addEventListener('click', exitSolo);
 on('ui:pause', pauseGame);
 on('ui:resume', pauseGame);
 on('ui:qualityChanged', () => {

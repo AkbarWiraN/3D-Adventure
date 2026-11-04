@@ -99,11 +99,12 @@ export const api = {
   configPublic: () => request('/api/v1/config/public'),
 
   // Fase 2 (belum dipakai di Fase 1 — jangan tampilkan tombol yang belum berfungsi)
-  register: (username, password) =>
-    request('/api/v1/auth/register', { method: 'POST', body: { username, password } }),
+  register: (username, password, character) =>
+    request('/api/v1/auth/register', { method: 'POST', body: { username, password, character } }),
   login: (username, password) =>
     request('/api/v1/auth/login', { method: 'POST', body: { username, password } }),
   me: () => request('/api/v1/users/me', { auth: true }),
+  updateMe: (character) => request('/api/v1/users/me', { method: 'PATCH', body: { character }, auth: true }),
   maps: () => request('/api/v1/maps', { auth: true }),
   mapStatus: () => request('/api/v1/maps/forest/status', { auth: true }),
   leaderboard: (limit = 10) => request(`/api/v1/leaderboard?mapId=forest&limit=${limit}`, { auth: true }),

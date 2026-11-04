@@ -134,6 +134,7 @@ export class Minimap {
   /** Peta penuh dengan zoom/pan. */
   renderBig(player) {
     if (!this.bigCtx) return;
+    this._lastPlayer = player;
     const W = this.bigCanvas.width;
     const H = this.bigCanvas.height;
     const g = this.bigCtx;
@@ -197,4 +198,51 @@ export class Minimap {
     this.panX = 0;
     this.panZ = 0;
   }
+
+  /** Input peta penuh: wheel/pinch zoom + drag pan (prompt.md §3.6). */
+  installInput() {
+    const c = this.bigCanvas;
+    if (!c || this._mapInput) return;
+    this._mapInput = true;
+    const off = [];
+    const add = (t, f, o) => { c.addEventListener(t, f, o); off.push([t, f, o]); };
+    const redraw = () => this.renderBig(this._lastPlayer || { x: 0, z: 0, yaw: 0 });
+    add('wheel', (e) => {
+      e.preventDefault();
+      this.zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15);
+      redraw();
+    }, { passive: false });
+    const pts = new Map();
+    let lastPinch = 0;
+    add('pointerdown', (e) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) lastPinch = pinchDist(pts);
+    });
+    add('pointermove', (e) => {
+      const prev = pts.get(e.pointerId);
+      if (!prev) return;
+      const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 1) { this.panBy(dx, dy); redraw(); }
+      else if (pts.size === 2 && lastPinch) {
+        this.zoomBy(pinchDist(pts) / lastPinch);
+        lastPinch = pinchDist(pts);
+        redraw();
+      }
+    });
+    const end = (e) => { pts.delete(e.pointerId); if (pts.size < 2) lastPinch = 0; };
+    add('pointerup', end); add('pointercancel', end); add('pointerleave', end);
+    this._mapInputOff = off;
+  }
+
+  dispose() {
+    for (const [t, f, o] of this._mapInputOff || []) this.bigCanvas?.removeEventListener(t, f, o);
+    this._mapInputOff = [];
+    this._mapInput = false;
+  }
+}
+
+function pinchDist(m) {
+  const v = [...m.values()];
+  return Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y);
 }

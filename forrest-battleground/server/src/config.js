@@ -34,8 +34,11 @@ if (isProd && origins.some((o) => o === '*' || o === 'null')) {
 }
 
 const authSecret = process.env.AUTH_SECRET || '';
-if (isProd && authSecret === 'GENERATE_RANDOM_SECRET_LOCALLY_DO_NOT_COMMIT') {
+if (isProd && (!authSecret || authSecret === 'GENERATE_RANDOM_SECRET_LOCALLY_DO_NOT_COMMIT')) {
   throw new Error('AUTH_SECRET belum di-set (fail-fast production).');
+}
+if (isProd && Buffer.byteLength(authSecret) < 32) {
+  throw new Error('AUTH_SECRET minimal 32 byte di production.');
 }
 
 export const config = {
