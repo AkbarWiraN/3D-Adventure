@@ -326,6 +326,9 @@ _(IN PROGRESS)_
   cert LE asli terlayani, Origin guard publik 200/403 — tanpa drift (tidak ada insiden sesi paralel).
 - Catatan jujur: denylist in-memory hilang saat restart (sesuai spec "in-memory hingga expiry";
   TTL 20 m membatasi jendela risiko).
+- Verifikasi WSS PRODUKSI lintas-internet: login `qa_persist_b` → WSS wss://api-be/ws
+  auth+join OK (sessionId) → POST logout (200) → socket WS AKTIF langsung ditutup server
+  **code=1008 reason=SESSION_REVOKED** — jalur logout→kickUser terbukti end-to-end di publik.
 - DEPLOY + VERIFIKASI PRODUKSI run ini juga: forest-battleground.service di-restart dengan
   kode baru (PID baru, active). Bukti publik nyata: `POST /api/v1/auth/logout` tanpa token →
   401; login `qa_persist_a` → token; `users/me` → 200; logout → 200 `{ok:true}`; token sama
