@@ -1,15 +1,18 @@
 # Checklist Operasional — Forest Battleground (VPS 43.173.6.81)
 
-> Status 5 Nov 2026 (malam): **SUDAH DINYALAKAN LAGI SEMUA** — backend, nginx, dan
-> fb-backup.timer aktif+enabled (restore drill produksi sukses). Frontend GitHub
-> Pages (statis) tidak pernah terpengaruh.
+> Status 5 Nov 2026 (malam #4): **KONFLIK PORT** — backend + fb-backup.timer
+> aktif+enabled (dipulihkan lagi). Nginx MASIH MATI karena port 80/443 dipegang
+> Apache2 (di-start manual root 15:48 oleh sesi pentest lain, masih berjalan).
+> SNI api-be.bssn.biz.id saat ini dilayani Apache dengan cert SELF-SIGNED
+> Subang-CSIRT — API game publik TIDAK bisa dipakai sampai Apache berhenti.
+> Frontend GitHub Pages (statis) tetap hidup.
 
 ## Status service (saat ini SEMUA nyala)
 | Service | Fungsi | Status |
 |---|---|---|
 | `forest-battleground.service` | Backend Fastify (REST+WSS), bind 127.0.0.1:3000 | **active, enabled** |
 | `fb-backup.timer` | Backup SQLite harian 03:17 | **active, enabled** (next 6 Nov 03:17) |
-| `nginx.service` | Reverse proxy TLS api-be.bssn.biz.id (80/443) | **active, enabled** |
+| `nginx.service` | Reverse proxy TLS api-be.bssn.biz.id (80/443) | **MATI** (port 80/443 dipegang Apache manual — lihat header) |
 
 Tidak disentuh (milik lain/bawaan): `wan-monitor` (3100), `certbot.timer`, `apache-htcacheclean`.
 
@@ -41,6 +44,9 @@ systemctl list-timers fb-backup.timer                       # NEXT terisi
 ```bash
 sudo systemctl disable --now forest-battleground.service fb-backup.timer nginx.service
 ```
+PERINGATAN (5 Nov): mematikan nginx saja TIDAK membebaskan 80/443 untuk game;
+Apache yang di-start manual (`apache2 -k start`, bukan systemd) juga harus
+di-stop sebelum nginx bisa bind. Koordinasikan dengan sesi pentest.
 
 ## Lokasi penting
 - Kode: `~/3D-Adventure/forrest-battleground/server` (env: `server/.env`)

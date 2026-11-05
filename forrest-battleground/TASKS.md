@@ -298,7 +298,41 @@ _(IN PROGRESS)_
 
 ## Butuh Keputusan
 
-_(kosong)_
+1. **Konflik port 80/443 antara game (nginx) dan sesi pentest (Apache manual)** —
+   status 5 Nov malam: Apache Subang-CSIRT memegang 80/443 dengan cert self-signed
+   di SNI api-be.bssn.biz.id → API game publik TIDAK bisa dipakai dari Pages.
+   Backend game sendiri sehat (127.0.0.1:3000). Pilihan:
+   (a) kalau retest selesai → stop Apache, `systemctl enable --now nginx`
+       (urutan lengkap di OPS_CHECKLIST.md);
+   (b) kalau dua-duanya harus hidup → Apache pindah port (mis. 8080/8443) atau
+       nginx dipindah port lain — perlu arsitektur port yang disepakati;
+   (c) biarkan sementara (game down publik) sampai sesi pentest selesai.
+2. **Sesi paralel berulang kali mematikan service game (3× dalam 1 hari).**
+   Usul: sepakati bahwa sesi lain tidak menyentuh forest-battleground.service /
+   nginx.service / fb-backup.timer, atau jadwalkan jendela pentest yang jelas.
+
+### Catatan run 2026-11-05 (malam #4) — drift ops KEEMPAT + konflik Apache pentest
+- 15:42:57 systemd mencatat "Stopped" manual untuk forest-battleground, nginx,
+  DAN fb-backup.timer (ketiganya sekaligus) oleh sesi interaktif lain
+  (103.156.88.95, masih login saat run ini). 15:48 Apache2 di-start manual
+  sebagai root (`/usr/sbin/apache2 -k start`, BUKAN unit systemd) dan mengambil
+  alih port 80/443 — kemungkinan untuk kebutuhan retest/arsip /var/www.
+- DAMPAK PUBLIK NYATA (terverifikasi curl+openssl saat run ini): SNI
+  api-be.bssn.biz.id sekarang dijawab Apache dengan sertifikat SELF-SIGNED
+  Subang-CSIRT (CN=43.173.6.81, notBefore 3 Nov 2026) + konten situs CSIRT
+  (404 page). Cert LE asli (ECDSA, s/d 2 Feb 2027) TIDAK terlayani → browser
+  dari Pages tidak bisa memakai API (TLS tidak dipercaya + konten salah).
+- YANG DIPULIHKAN TANPA KONFLIK: forest-battleground.service (backend bind
+  127.0.0.1:3000, tidak butuh 80/443) + fb-backup.timer — keduanya enable
+  --now, health lokal 200 Origin sah, /healthz db:true, timer next 6 Nov 03:17.
+- YANG SENGAJA TIDAK DISENTUH: Apache (proses milik sesi pentest aktif —
+  membunuhnya bisa merusak retest resmi) dan nginx (konflik port dengan
+  Apache; menyalakan keduanya bersamaan tidak mungkin).
+- Regresi kode tetap hijau: unit 49/49, server 33/33.
+- ROOT CAUSE BERULANG: ini ke-3 kalinya dalam 1 hari service game dimatikan
+  oleh sesi paralel. Checklist ops sudah ada tapi tidak dipatuhi sesi lain.
+  Butuh keputusan pemilik (lihat Butuh Keputusan).
+
 
 ## PENDING_MANUAL (butuh HP asli)
 
