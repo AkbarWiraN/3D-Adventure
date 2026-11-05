@@ -325,10 +325,12 @@ _(IN PROGRESS)_
 - Produksi dicek sebelum bekerja: forest-battleground + nginx + fb-backup.timer active+enabled,
   cert LE asli terlayani, Origin guard publik 200/403 — tanpa drift (tidak ada insiden sesi paralel).
 - Catatan jujur: denylist in-memory hilang saat restart (sesuai spec "in-memory hingga expiry";
-  TTL 20 m membatasi jendela risiko). Verifikasi E2E browser penuh produksi untuk fitur ini
-  belum dijalankan ulang — dipastikan run berikutnya.
-- Belum dideploy ke produksi (service masih kode sebelumnya) — butuh restart service yang
-  dijadwalkan hati-hati; dicatat di sini, dieksekusi run ini juga (di bawah, setelah push).
+  TTL 20 m membatasi jendela risiko).
+- DEPLOY + VERIFIKASI PRODUKSI run ini juga: forest-battleground.service di-restart dengan
+  kode baru (PID baru, active). Bukti publik nyata: `POST /api/v1/auth/logout` tanpa token →
+  401; login `qa_persist_a` → token; `users/me` → 200; logout → 200 `{ok:true}`; token sama
+  di `users/me` → **401**; logout kedua → **401** (idempotent). Health/Origin guard tetap
+  200 Origin sah / 403 tanpa Origin. nginx + fb-backup.timer tetap active+enabled.
 
 ## Butuh Keputusan
 
