@@ -312,8 +312,40 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
   #status-cluster { min-width: 150px; }
   #desktop-hint { display: none !important; }
   #prompt { bottom: 30%; }
-  .panel { padding: 14px; }
-  .panel.full { max-height: calc(100vh - 16px); overflow-y: auto; }
+}
+
+/* Layar pendek (HP landscape ~360–430px tinggi, juga jendela desktop sempit):
+   panel overlay harus muat TANPA terpotong — judul/tagline diringkas,
+   form + menu jadi 2 kolom, jarak dipadatkan. */
+@media (max-height: 520px) {
+  .overlay { align-items: flex-start; padding: calc(6px + var(--safe-t)) calc(10px + var(--safe-r)) calc(6px + var(--safe-b)) calc(10px + var(--safe-l)); }
+  .panel { padding: 10px 14px; max-height: calc(100vh - 12px); max-height: calc(100dvh - 12px); overflow-y: auto; }
+  .panel.wide { max-width: 640px; }
+  .game-title { font-size: 1.25rem; margin-bottom: 0; }
+  .subtitle { font-size: .66rem; margin-bottom: 4px; letter-spacing: .22em; }
+  .panel > .dim.small { display: none; } /* tagline disembunyikan di layar pendek */
+  .field { margin-bottom: 7px; }
+  .field > span { font-size: .78rem; margin-bottom: 3px; }
+  .field input:not([type=range]):not([type=checkbox]), .field select { padding: 7px 9px; font-size: .9rem; }
+  .btn { padding: 8px 14px; min-height: 38px; font-size: .92rem; }
+  .btn.small { min-height: 32px; padding: 6px 10px; }
+  .menu { flex-direction: row; flex-wrap: wrap; gap: 7px; margin: 8px 0 6px; }
+  .menu .btn { flex: 1 1 30%; }
+  .auth-mode { margin-bottom: 8px; }
+  .auth-tab { padding: 7px 0; font-size: .88rem; }
+  #auth-status { margin: 4px 0 0; }
+  #online-note { margin: 4px 0 0; }
+  h3 { font-size: 1rem; margin-bottom: 6px; }
+  hr { margin: 10px 0; }
+  /* Lobby di HP landscape: header tipis, konten 2 kolom bila muat */
+  .lobby-header { padding: 6px 10px; }
+  .lobby-tab { padding: 6px 10px; font-size: .82rem; min-height: 34px; }
+  .lobby-page { padding: 10px 14px 12px; }
+  .lobby-page h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .char-cards { gap: 8px; margin: 8px 0; }
+  .char-card { padding: 10px; }
+  .char-avatar { font-size: 1.6rem; }
+  .lb-list li { padding: 6px 10px; font-size: .85rem; }
 }
 
 /* Desktop / pointer halus: kontrol sentuh tidak muncul */

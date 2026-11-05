@@ -205,7 +205,20 @@ _(IN PROGRESS)_
   `clampToWorld` (tak bisa keluar peta). Refactor kecil: `MAX_ATTACK_PER_SEC`
   dipindah ke `shared/constants.js` (sebelumnya hardcode 50 di room.js vs konstanta
   tak terpakai di protocol.js) — satu sumber kebenaran.
-- [ ] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
+- [x] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
+  Bukti NYATA (5 Nov 2026):
+  - `certbot renew --dry-run --cert-name api-be.bssn.biz.id` → "Congratulations, all
+    simulated renewals succeeded" (exit 0). Cert valid 89 hari (s/d 2 Feb 2027, ECDSA).
+    certbot.timer aktif (next run 18:21). KEGAGALAN JUJUR: cert `bsre.bssn.biz.id`
+    (tidak terkait proyek ini) gagal renewal — NXDOMAIN, DNS record-nya hilang;
+    butuh keputusan pemilik (hapus cert atau perbaiki DNS).
+  - Ditemukan & DIPERBAIKI: `forest-battleground.service` dalam keadaan inactive
+    (terhenti 11:35, sebab tidak tercatat — kemungkinan terkait run paralel);
+    api-be.bssn.biz.id melayani 502. Service di-start ulang, enabled, dan
+    `curl https://api-be.bssn.biz.id/api/v1/maps` → 401 NO_TOKEN (benar, butuh auth).
+  - logrotate.timer aktif harian; nginx rotate 14 hari. Log fb via journald;
+    journal 777.5 MB di-vacuum ke 394.8 MB + `SystemMaxUse=400M`,
+    `MaxRetentionSec=2week` di-set permanen (sebelumnya unlimited — risiko disk penuh).
 - [ ] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
 - [ ] [QA] Real laptop + HP portrait lintas jaringan: PvP 5 hit, leaderboard, exit/rejoin — PENDING_MANUAL
 
