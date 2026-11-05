@@ -554,6 +554,13 @@ _(IN PROGRESS)_
   PENDING_MANUAL HP asli). Butuh Keputusan tetap: 1 item (jendela sesi paralel —
   tanpa insiden malam ini).
 
+### Catatan run 2026-11-05 (malam #15) — verifikasi penuh, tanpa drift, tanpa item baru
+
+- Pra-cek bersih: forest-battleground + nginx active, fb-backup.timer (next 03:17) & fb-disk-check.timer (next 04:03) enabled, disk 38 GB free.
+- Healthz: loopback 200 ({"ok":true,"db":true}), publik 403 = desain (TASKS.md baris 28/58), bukan regresi.
+- Dengan PATH=/opt/node24/bin:$PATH (gotcha README baris 44): server suite **36/36 PASS** (35.5 s), unit FE **49/49 PASS**, prod-smoke produksi **14/14 PASS** (register→JWT→leaderboard→forest status→WS origin-deny/auth/join→forged-token 401→logout revoke).
+- Checklist: tetap tidak ada item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader
