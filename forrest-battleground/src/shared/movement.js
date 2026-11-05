@@ -50,10 +50,13 @@ export function cameraRelativeMove(yaw, moveX, moveZ) {
   const { x: nx, z: nz } = normalizeMoveInput(moveX, moveZ);
   const sin = Math.sin(yaw);
   const cos = Math.cos(yaw);
-  // forward = (sin yaw, cos yaw), right = (cos yaw, -sin yaw)
+  // forward = (sin yaw, cos yaw) — tidak berubah.
+  // right   = (-cos yaw, sin yaw) = cross(forward, up) di ruang tangan-kanan.
+  // Versi lama memakai (cos yaw, -sin yaw): TANDANYA TERBALIK, jadi geser
+  // kiri di joystick malah bergerak ke kanan di layar (laporan pemain).
   return {
-    x: nx * cos + nz * sin,
-    z: -nx * sin + nz * cos,
+    x: -nx * cos + nz * sin,
+    z: nx * sin + nz * cos,
   };
 }
 

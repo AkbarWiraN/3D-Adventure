@@ -51,6 +51,30 @@ export class WorldManager {
       this._createChunk(px, pz);
       made++;
     }
+    // upgrade/downgrade detail vegetasi chunk yang sudah ada.
+    this._refreshLOD(cx, cz);
+  }
+
+  /**
+   * Chunk yang dulu dibangun detail-rendah harus dinaikkan detailnya saat
+   * pemain mendekat (dan sebaliknya). Dilakukan lazy di sini, 1 chunk/frame.
+   */
+  _refreshLOD(cx, cz) {
+    for (const [k, entry] of this.chunks) {
+      const [px, pz] = k.split(',').map(Number);
+      const near = Math.hypot(px - cx, pz - cz) <= 1.5;
+      const want = near ? 'near' : 'far';
+      if (entry.detail === want || !entry.vegetation) continue;
+      // ganti hanya grup vegetasi, terrain dibiarkan (mahal & tak berubah)
+      this.root.remove(entry.vegetation);
+      disposeGroup(entry.vegetation);
+      const veg = createVegetationChunk(px, pz, want);
+      entry.group.add(veg);
+      entry.vegetation = veg;
+      entry.detail = want;
+      this.stats.rebuilt = (this.stats.rebuilt || 0) + 1;
+      return; // satu per frame, jaga frame time
+    }
   }
 
   _recomputeDesired(cx, cz) {
@@ -91,15 +115,19 @@ export class WorldManager {
     const terrain = createTerrainChunk(cx, cz);
     group.add(terrain);
 
-    // Vegetasi hanya di ring dalam (hemat draw call).
+    // LOD jarak, bukan radius tetap: chunk yang jauh dari pemain dibangun
+    // dengan detail rendah (tanpa rumput/semak, pohon lebih sedikit).
+    // Sudah dihitung saat dibangun -> nol biaya per frame.
     const dist = Math.hypot(cx - this.lastCenter.cx, cz - this.lastCenter.cz);
-    if (dist <= 1.5) {
-      const veg = createVegetationChunk(cx, cz);
-      group.add(veg);
+    const near = dist <= 1.5;
+    let vegetation = null;
+    if (dist <= 2.5) {
+      vegetation = createVegetationChunk(cx, cz, near ? 'near' : 'far');
+      group.add(vegetation);
     }
 
     this.root.add(group);
-    this.chunks.set(this.key(cx, cz), { group, terrain });
+    this.chunks.set(this.key(cx, cz), { group, terrain, vegetation, detail: vegetation ? (near ? 'near' : 'far') : null });
     this.stats.created++;
     this.stats.loaded = this.chunks.size;
   }

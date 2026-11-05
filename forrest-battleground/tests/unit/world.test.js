@@ -9,7 +9,7 @@ import { getWorld, validateWorld, buildHouses, buildPois, buildSpawnCandidates }
 import {
   normalizeMoveInput, effectiveSpeed, canSprint, canJump, canProne,
   cameraRelativeMove, circleVsObb, buildColliderGrid, resolveMove,
-  clampToWorld, validateStep, maxDistancePerTick,
+  clampToWorld, validateStep, maxDistancePerTick, nearbyColliders,
 } from '../../src/shared/movement.js';
 import { WORLD, PLAYER, SPAWN, WEAPONS, COMBAT } from '../../src/shared/constants.js';
 
@@ -117,6 +117,27 @@ test('cameraRelativeMove: yaw 90deg + maju => +X', () => {
   assert.ok(Math.abs(m.z) < 1e-9);
 });
 
+// Arah STRAFE: kesalahan tanda di sini bikin joystick terasa kebalik di layar.
+// Patokan geometri (bukan selera): kamera berdiri di belakang pemain
+// (camPos = focus − forward·dist) dan menghadap +forward. Di ruang tangan-kanan,
+// right × up = −forward, sehingga right = (−cos yaw, +sin yaw).
+// yaw=0 → forward +Z → KANAN LAYAR = −X.
+test('cameraRelativeMove: geser KANAN (moveX>0) => −X saat yaw=0 (kanan layar)', () => {
+  const m = cameraRelativeMove(0, 1, 0);
+  assert.ok(Math.abs(m.x + 1) < 1e-9, `x=${m.x} harus −1 (kanan layar saat hadap +Z)`);
+  assert.ok(Math.abs(m.z) < 1e-9);
+});
+
+test('cameraRelativeMove: geser KIRI (moveX<0) => +X saat yaw=0', () => {
+  const m = cameraRelativeMove(0, -1, 0);
+  assert.ok(Math.abs(m.x - 1) < 1e-9, `x=${m.x} harus +1`);
+});
+
+test('cameraRelativeMove: hadap +X (yaw 90deg), geser kanan => +Z', () => {
+  const m = cameraRelativeMove(Math.PI / 2, 1, 0);
+  assert.ok(Math.abs(m.z - 1) < 1e-9, `z=${m.z} harus +1`);
+});
+
 // --------------------------------------------------------------- collision
 test('circleVsObb mendeteksi tabrakan dan jarak aman', () => {
   const wall = { id: 'w', cx: 0, cz: 0, hx: 2, hz: 0.25, rotY: 0 };
@@ -136,6 +157,31 @@ test('collider grid menemukan collider di sekitar titik', () => {
   const house = getWorld().houses[0];
   const found = grid.map.get(`${Math.floor(house.x / WORLD.GRID_CELL)},${Math.floor(house.z / WORLD.GRID_CELL)}`);
   assert.ok(found && found.length > 0, 'minimal satu collider di sel rumah');
+});
+
+// Bug nyata (laporan pemain): dinding depan dibuat satu blok penuh di collider
+// sehingga pintu tidak bisa dilewati. Harus: semua rumah dapat dimasuki lewat
+// bukaan pintu (mesh sudah punya gap, collider ikut).
+test('SEMUA rumah bisa dimasuki lewat pintu (collider tidak menutup)', () => {
+  const world = getWorld();
+  const grid = buildColliderGrid(world.colliders);
+  const blockedAt = (x, z) => nearbyColliders(grid, x, z, PLAYER.RADIUS)
+    .some((c) => circleVsObb(x, z, PLAYER.RADIUS, c));
+  let ok = 0;
+  const gagal = [];
+  for (const h of world.houses) {
+    const cos = Math.cos(h.rotY), sin = Math.sin(h.rotY);
+    // rintis garis dari luar (t=-2) ke dalam (t=+2) lewat tengah pintu
+    let masuk = false;
+    for (let t = -2; t <= 2; t += 0.2) {
+      const px = h.x - (h.d / 2 + t) * sin;
+      const pz = h.z + (h.d / 2 + t) * cos;
+      if (!blockedAt(px, pz) && t > 0.2) { masuk = true; break; }
+    }
+    if (masuk) ok++; else gagal.push(h.id);
+  }
+  assert.equal(gagal.length, 0, `tertutup: ${gagal.join(', ')}`);
+  assert.ok(ok === world.houses.length, `masuk ${ok}/${world.houses.length}`);
 });
 
 test('resolveMove menolak menembus dinding tapi tetap bisa bergerak', () => {

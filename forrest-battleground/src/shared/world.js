@@ -175,13 +175,19 @@ export function buildColliders() {
     const halfD = h.d / 2;
     const cos = Math.cos(h.rotY);
     const sin = Math.sin(h.rotY);
-    // 4 dinding sebagai collider terpisah -> pintu tetap bisa dilewati.
+    // Dinding depan (side 's') punya BUKAAN PINTU seperti mesh di buildings.js:
+    // dibuat 2 segmen, bukan satu blok penuh. Versi lama satu blok → collider
+    // menutup pintu sehingga rumah TIDAK BISA dimasuki (laporan pemain).
     const t = 0.25; // ketebalan dinding
+    const frontHalf = (h.w - h.door) / 2;
     const walls = [
       { ox: 0, oz: -halfD, sx: halfW, sz: t, side: 'n' },
-      { ox: 0, oz: halfD, sx: halfW, sz: t, side: 's' },
       { ox: -halfW, oz: 0, sx: t, sz: halfD, side: 'w' },
       { ox: halfW, oz: 0, sx: t, sz: halfD, side: 'e' },
+      // Segmen kiri & kanan pintu (hx = SETENGAH lebar segmen, konsisten dgn
+      // dinding lain). Sisi depan = +halfD (sama seperti mesh pintu).
+      { ox: -(h.door / 2 + frontHalf / 2), oz: halfD, sx: frontHalf / 2, sz: t, side: 'sw' },
+      { ox: (h.door / 2 + frontHalf / 2), oz: halfD, sx: frontHalf / 2, sz: t, side: 'se' },
     ];
     for (const w of walls) {
       const wx = h.x + (w.ox * cos - w.oz * sin);

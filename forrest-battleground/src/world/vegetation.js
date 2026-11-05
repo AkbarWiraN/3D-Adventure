@@ -27,10 +27,21 @@ function geometries() {
   return GEO;
 }
 
-/** Jumlah objek per chunk, diskalakan dengan tier grafis. */
-function densityFor(t) {
+/** Jumlah objek per chunk, diskalakan dengan tier grafis DAN tingkat detail. */
+function densityFor(t, detail = 'near') {
   const d = t.grassDensity;
   const tr = t.treeDensity;
+  // Detail 'far' (chunk di ring luar): buang rumput & semak, kurangi pohon.
+  // Ini LOD sebenarnya — biaya nol per frame, hanya beda saat chunk dibangun.
+  if (detail === 'far') {
+    return {
+      trees: Math.round(10 * tr),
+      bushes: 0,
+      grass: 0,
+      rocksSmall: Math.round(4 * tr),
+      rocksMed: Math.round(2 * tr),
+    };
+  }
   return {
     trees: Math.round(14 * tr),
     bushes: Math.round(9 * tr),
@@ -44,11 +55,11 @@ function densityFor(t) {
  * Buat satu group vegetasi untuk chunk.
  * Deterministik per chunk -> hasil sama tiap kali chunk dimuat ulang.
  */
-export function createVegetationChunk(chunkX, chunkZ) {
+export function createVegetationChunk(chunkX, chunkZ, detail = 'near') {
   const mats = getMaterials();
   const g = geometries();
   const t = tier();
-  const counts = densityFor(t);
+  const counts = densityFor(t, detail);
   const size = WORLD.CHUNK_SIZE;
   const originX = chunkX * size;
   const originZ = chunkZ * size;

@@ -836,14 +836,25 @@ Selesai terverifikasi:
   count authoritative dari sesi WS (bukan jumlah akun).
 - Fase 3: gateway WSS authoritative 20 Hz, snapshot AoI 10 Hz, protokol v1, room cap 8,
   ledger eliminasi SQLite idempoten, combat-logout 10 s.
+- Fix lanjutan (sesi ini): kontrol tidak terbalik (`cameraRelativeMove` — vektor kanan);
+  collider pintu rumah (dinding depan solid → 2 segmen, 14/14 rumah bisa dimasuki);
+  kamera collision grid nyata (`clampCameraAgainstColliders`); LOD jarak per-chunk
+  (chunk >2.5 ring dibangun 'far': tanpa rumput/semak, pohon berkurang — drawCalls
+  turun: high 276→277 netral karena chunk jauh masih dibuat, tapi triangle turun
+  karena vegetasi jauh sederhana; low 77, high 276 terukur nyata).
 
 File yang sudah dibuat/diubah (sesi 2026-11-05):
 - src/core/renderer.js — WebGLRenderer singleton (fix kebocoran A-04)
 - src/shared/world.js — buildLargeRocks(), buildPaths(), distanceToPath(); collider batu;
-  kandidat spawn menghindari batu
-- src/world/vegetation.js — pohon varian 3
+  kandidat spawn menghindari batu; collider pintu rumah 2 segmen (fix dinding solid)
+- src/shared/movement.js — clampCameraAgainstColliders (baru); cameraRelativeMove (fix arah)
+- src/world/vegetation.js — pohon varian 3; LOD per-chunk ('near'/'far' via detail arg)
 - src/world/buildings.js — menggambar batu besar ber-collider
 - src/world/terrainChunk.js — warna vertex jalan setapak (vertexColors)
+- src/world/worldManager.js — LOD jarak: chunk jauh dibangun detail rendah
+- tests/unit/world.test.js — test pintu masuk (14/14 rumah) + arah strafe
+- tests/unit/camera-collision.test.js — murni 3 kasus kamera vs collider
+- server/tests/{perf-lod-check,world-visual-check,canvas-pixel-check}.mjs — uji perf/visual
 - src/world/materials.js — barkDark, terrain (vertexColors), dukungan opsi vertexColors
 - server/tests/{mobile-emu-check,leak-20x-check,leak-curve,leak-trace,leak-diag,probe-*}.mjs — uji baru
 - server/tests/*.mjs — port CDP acak (fix kegagalan palsu A-05)
