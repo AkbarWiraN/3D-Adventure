@@ -284,3 +284,36 @@ BROWSER SMOKE PENUH (backend QA nyata 3100, DB bersih):
 
 TEST SUITE: unit 42/42; backend 23/23 (http+security+auth); realtime 9/9;
 build:pages 37 file 2.08 MB audit lolos.
+
+────────────────────────────────────────────────────────
+[2026-11-05 09:10 WIB] FASE 4 (lanjutan) — BUG CAMERA COLLECTION + TEST SUITE 45/45
+
+BUG NYATA #3 DITEMUKAN via tests/unit/camera-collision.test.js (test baru):
+  clampCameraAgainstColliders mundur ke safe=(i-1)/6 = 0.25 saat terhalang,
+  TAPI 0.25 masih DI DALAM collider ketika FOKUS (posisi pemain) sendiri ada
+  di dalam collider (kasus titik batu besar). Kamera tetap menembus batu.
+  Reproduksi: fokus (229.9,-103.7), rock hz=1.48 → clamp ke z=-103.36,
+  |selisih| 0.32 < hz → masih dalam. insideAny() = true → test FAIL.
+  FIX: cari t TERKECIL yang benar-benar bebus (blockedAt loop dari t=0);
+  kalau seluruh garis terhalang, cari titik bebas radial di sekitar fokus;
+  fallback terakhir: tetap di fokus. Sekaligus: t=1 bebas → hit:false.
+
+BUG KECIL #4: config.js menyentuh window.devicePixelRatio di top-level →
+unit test di Node ReferenceError. Fix: guard typeof window.
+
+TEST BARU: tests/unit/camera-collision.test.js (3 test, murni, tanpa three):
+  - kamera tak masuk collider di 14 rumah + 18 batu × 4 arah (128 kasus)
+  - tanpa grid: posisi tak berubah, tak crash
+  - ruang terbuka: kamera dibiarkan
+
+SUITE LENGKIH (semua dijalankan nyata):
+  npm test                        → 45/45 PASS (42 lama + 3 kamera)
+  server http+security+auth       → 23/23 PASS
+  server realtime                 → 9/9 PASS
+  browser-smoke (QA backend 3100) → VERDICT PASS
+  leak-20x-check                  → VERDICT PASS (tex:1 stabil)
+  build:pages                     → 37 file 2.08 MB audit lolos
+  push origin main                → aa0b03b..66852f8
+
+CATATAN JUJUR: FPS headless SwiftShader (4-5) BUKAN metrik perangkat.
+PENDING_MANUAL tetap: HP asli, multitouch, notch, PvP lintas jaringan.
