@@ -59,19 +59,19 @@ export const CONFIG = {
   showFps: false,
 
   camera: {
-    fovNormal: 68,
+    fovNormal: 62,
     fovAim: 42,
     near: 0.1,
     far: 700,
-    distance: 5.2,          // jarak kamera ke pemain (over-shoulder)
+    distance: 3.9,          // jarak kamera ke pemain (over-shoulder, lebih dekat agar tak "zoom out")
     shoulderOffset: 0.75,   // geser ke kanan saat aim
-    aimDistance: 3.4,
+    aimDistance: 2.8,
     height: 1.65,
     pitchMin: -0.95,
     pitchMax: 1.15,
     followLerp: 9.0,        // smoothing posisi kamera (makin besar makin ketat)
     yawLerp: 2.6,           // smoothing yaw otomatis saat berbelok
-    collideRadius: 0.45,    // kamera tidak menembus dinding
+    collideRadius: 0.55,    // kamera tidak menembus dinding/pohon (lebih besar = lebih aman)
   },
 };
 

@@ -87,8 +87,8 @@ export class CameraRig {
       camZ += rightZ * shoulder;
     }
 
-    // Camera collision (dinding/batu) — logika bersama di src/shared/movement.js.
-    const cc = clampCameraAgainstColliders(this.grid, focusX, focusZ, camX, camZ);
+    // Camera collision (dinding/batu/pohon) — logika bersama di src/shared/movement.js.
+    const cc = clampCameraAgainstColliders(this.grid, focusX, focusZ, camX, camZ, C.collideRadius);
     if (cc.hit) {
       const sx = (cc.x - focusX) / (camX - focusX || 1);
       const sz = (cc.z - focusZ) / (camZ - focusZ || 1);

@@ -353,3 +353,31 @@ HASIL NYATA:
   Screenshot UI diverifikasi visual (judul/login, lobby 5 tab, rotate-hint).
 
 PENDING_MANUAL tetap: HP asli landscape di jaringan berbeda.
+
+=== 5 Nov 2026 (malam) — UAT HP ASLI: 5 fix mobile + bot agresif + loot random ===
+
+LAPORAN DARI HP (Ken): kamera crash dekat pohon & terlalu zoom out, tombol tak
+menyesuaikan senjata, loncat rendah/janggal, tiarap hancur. Plus permintaan:
+rumah bisa dimasuki, loot senjata random tersebar, bot menyerang & men-drop
+senjatanya saat dibunuh.
+
+FIX:
+- Kamera: distance 5.2→3.9, fov 68→62, aimDistance 3.4→2.8 (tak zoom out),
+  collideRadius 0.45→0.55 & dipakai di clamp (tak clip pohon/dinding).
+- Lompat: JUMP_SPEED 5.2→7.0 m/s (sesuai prompt.md impuls ~7).
+- Tiarap: pose rata tanah benar (rotasi -PI/2+0.12, y+0.18), pose kaki/lengan
+  tak ditimpa animasi jalan (_animate skip saat prone).
+- Tombol mobile menyesuaikan senjata (hud._syncWeaponButtons): BIDIK hanya
+  saat pegang Busur; LEMPAR/JATUHKAN hanya saat pegang senjata.
+- Rumah: 14/14 bisa dimasuki (test permanen di world.test.js; probe browser
+  gagal karena arah gerak probe, BUKAN karena collider — collider terbukti
+  bebas di semua pintu).
+- Loot: 26 titik senjata acak tersebar di map (sword/bow/arrows) + loot POI.
+- Bot: 6 bot, AI patrol→chase→attack dengan strafe mengitar (mirip player),
+  20 HP per hit, membawa sword/bow yang tampak di tangan, dan MENJATUHKAN
+  senjatanya saat dibunuh → bisa diambil pemain. Kill feed "Kamu dikalahkan
+  bot" saat player mati oleh bot.
+
+HASIL NYATA:
+  unit 49/49 · browser-smoke PASS · mobile-emu PASS · leak-20x PASS
+PENDING_MANUAL: verifikasi rasa di HP asli oleh Ken (kamera/lompat/tiarap/bot).

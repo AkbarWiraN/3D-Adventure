@@ -22,7 +22,7 @@ export const PLAYER = Object.freeze({
   WALK_SPEED: 3.6,     // m/s
   SPRINT_SPEED: 6.4,
   PRONE_SPEED: 1.2,
-  JUMP_SPEED: 5.2,
+  JUMP_SPEED: 7.0,     // impuls awal ~7 m/s (prompt.md §1.2) — terasa lebih tinggi & alami
   GRAVITY: -18.0,
   RESPAWN_INVULN_MS: 2000,
 });

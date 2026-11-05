@@ -288,7 +288,9 @@ function verdict(R) {
     need(R.onlineC?.loginStatus && /Selamat datang/.test(R.onlineC.loginStatus), `online login gagal: ${R.onlineC?.loginStatus}`);
     need(R.onlineC?.joined === true, 'UI tidak join room online');
     need(R.onlineC?.weapon === 'Tangan Kosong', `HUD senjata online salah: ${R.onlineC?.weapon}`);
-    need(R.onlineC?.enemyMarkers === 1, `marker musuh di minimap: ${R.onlineC?.enemyMarkers}`);
+    // >= 1: di produksi bisa ada pemain/jelmaan lain yang sah di room; yang penting
+    //    enemy_map memuat SETIDAKNYA lawan yang kita pasang (bukan 0 = buntu).
+    need((R.onlineC?.enemyMarkers ?? 0) >= 1, `marker musuh di minimap: ${R.onlineC?.enemyMarkers}`);
     need(R.onlineC?.exited?.lobby === true && R.onlineC?.exited?.hudHidden === true, 'exit online tidak kembali ke lobby');
   }
   return fails;

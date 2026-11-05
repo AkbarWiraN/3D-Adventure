@@ -44,6 +44,7 @@ export class Hud {
     if (name !== this._last.weapon) {
       this._last.weapon = name;
       this.nodes.weaponName.textContent = name;
+      this._syncWeaponButtons(name);
     }
     if (ammo === null) {
       if (this._last.ammo !== 'hidden') {
@@ -57,6 +58,24 @@ export class Hud {
         this.nodes.ammoCount.textContent = String(ammo);
       }
     }
+  }
+
+  /**
+   * Tombol mobile menyesuaikan senjata aktif (permintaan pemilik 5 Nov):
+   * - BIDIK hanya saat memegang Busur.
+   * - LEMPAR/JATUHKAN hanya saat memegang senjata (bukan tangan kosong).
+   */
+  _syncWeaponButtons(weaponName) {
+    const aim = el('mb-aim');
+    const thr = el('mb-throw');
+    const drp = el('mb-drop');
+    const hasWeapon = weaponName !== 'Tangan Kosong';
+    const isBow = weaponName === 'Busur';
+    aim?.classList.toggle('hidden', !isBow);
+    thr?.classList.toggle('hidden', !hasWeapon);
+    drp?.classList.toggle('hidden', !hasWeapon);
+    // Kalau tombol bidik disembunyikan saat sedang mengunci, lepas kuncinya.
+    if (!isBow) this.setCrosshair(false);
   }
 
   /**

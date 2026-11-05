@@ -191,8 +191,18 @@ export class Player {
 
     this.group.position.copy(this.position);
     this.group.rotation.y = this.yaw;
-    this.group.rotation.x = this.prone ? -Math.PI / 2.2 : 0;
-    if (this.prone) this.group.position.y += 0.35;
+    // Tiarap: badan horizontal MENGHADAP arah gerak (bukan tengkurap terbalik),
+    // kaki sedikit menekuk, tinggi grup diturunkan agar tak melayang.
+    if (this.prone) {
+      this.group.rotation.x = -Math.PI / 2 + 0.12; // hampir rata, sedikit angkat kepala
+      this.group.position.y += 0.18;               // lebih rendah dari sebelumnya (0.35 terlalu melayang)
+      this.legL.rotation.x = 0.35;
+      this.legR.rotation.x = -0.25;
+      this.armL.rotation.x = -1.9;                 // lengan menopang depan
+      if (!this.aiming) this.armR.rotation.x = -1.9;
+    } else {
+      this.group.rotation.x = 0;
+    }
 
     this._animate(dt, mag > 1e-5 ? speed : 0);
   }
@@ -202,6 +212,9 @@ export class Player {
     const moving = speed > 0.05;
     const rate = this.sprint ? 11 : (this.prone ? 2 : 7);
     if (moving) this.animPhase += dt * rate;
+
+    // Saat tiarap, pose kaki/lengan sudah di-set di update() — jangan ditimpa swing jalan.
+    if (this.prone) return;
 
     const swing = moving ? Math.sin(this.animPhase) * (this.sprint ? 0.85 : 0.5) : 0;
     this.legL.rotation.x = swing;
