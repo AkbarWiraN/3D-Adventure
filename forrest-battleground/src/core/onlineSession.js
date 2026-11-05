@@ -8,6 +8,7 @@ import { SoloSession } from './session.js';
 import { createClient } from '../network/ws.js';
 import { emit, on } from './bus.js';
 import { PLAYER } from '../shared/constants.js';
+import { terrainHeight } from '../shared/terrain.js';
 
 const INTERP_MS = 120; // buffer interpolasi remote (prompt: 100-150 ms)
 
@@ -21,6 +22,7 @@ export class OnlineSession {
     this.character = character;
 
     this.remotes = new Map(); // sessionId -> {mesh, target:{x,y,z,yaw}, prev, at}
+    this.lootMeshes = new Map(); // lootId -> mesh (world, dari server snapshot)
     // State HUD online (sumber: snapshot server, bukan combat lokal).
     this.inv = [null, null];
     this.slot = 0;
@@ -96,6 +98,8 @@ export class OnlineSession {
         this.solo.player.group.position.copy(this.solo.player.position);
       }
       this._syncRemotes(m.players || []);
+      // Loot AoI dari server: render mesh + prompt ambil (prompt.md §1.1).
+      this._syncLoot(m.loot || []);
       this.solo.minimap.update(
         { x: s.x ?? this.solo.player.position.x, z: s.z ?? this.solo.player.position.z, yaw: s.yaw ?? 0 },
         (m.players || []).map((p) => ({ x: p.x, z: p.z, dead: p.d }))
@@ -218,6 +222,41 @@ export class OnlineSession {
     return g;
   }
 
+  // --------------------------------------------------------------- loot (server)
+  /** Render + prompt loot dari snapshot server. Identik dengan perilaku Solo. */
+  _syncLoot(list) {
+    const seen = new Set();
+    const colors = { bow: 0x9d642e, sword: 0xc7cbd0, arrows: 0xd6c48a };
+    for (const l of list) {
+      seen.add(l.id);
+      let mesh = this.lootMeshes.get(l.id);
+      if (!mesh) {
+        mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.7, 0.16, 0.16),
+          new THREE.MeshStandardMaterial({ color: colors[l.type] || 0xd6c48a })
+        );
+        mesh.position.set(l.x, terrainHeight(l.x, l.z) + 0.25, l.z);
+        this.solo.scene.add(mesh);
+        this.lootMeshes.set(l.id, mesh);
+      }
+    }
+    for (const [id, mesh] of this.lootMeshes) {
+      if (seen.has(id)) continue;
+      this.solo.scene.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      this.lootMeshes.delete(id);
+    }
+    // Prompt ambil: loot terdekat dalam radius pickup (2.5 m, sama seperti Solo).
+    const p = this.solo.player.position;
+    let best = null; let bestD = 2.5;
+    for (const l of list) {
+      const d = Math.hypot(l.x - p.x, l.z - p.z);
+      if (d <= bestD) { bestD = d; best = l; }
+    }
+    this.solo.hud.setPrompt(best ? `Ambil ${best.type === 'bow' ? 'Busur' : best.type === 'sword' ? 'Pedang' : 'Anak panah'}` : null);
+  }
+
   /** Interpolasi remote di loop render (dipanggil session wrapper). */
   _renderRemotes() {
     const now = performance.now();
@@ -244,6 +283,12 @@ export class OnlineSession {
       r.mesh.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });
     }
     this.remotes.clear();
+    for (const mesh of this.lootMeshes.values()) {
+      this.solo.scene.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+    }
+    this.lootMeshes.clear();
     this.solo.dispose();
   }
 

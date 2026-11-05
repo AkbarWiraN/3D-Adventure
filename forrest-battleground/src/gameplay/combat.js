@@ -5,7 +5,8 @@ import { on, emit } from '../core/bus.js';
 import { WEAPONS, DAMAGE, takeLoot, weaponClass, canAttack } from './combatRules.js';
 
 const PICKUP = 2.5;
-const BOT_COUNT = 6;
+// Ken (6 Nov): "1-2 bot tiap 100m" di map 1024×1024 → ~24 bot tersebar acak.
+const BOT_COUNT = 24;
 const LOOT_SPOTS = 26;              // senjata tersebar acak di seluruh map (bisa di-loot)
 const BOT_ATTACK_RANGE = 1.8;
 const BOT_HIT_COOLDOWN_MS = 1400;
@@ -40,26 +41,50 @@ export class SoloCombat {
     const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
     // Loot POI bawaan + TAMBAHAN senjata tersebar acak (permintaan pemilik:
-    // "senjata random lokasinya bisa di looting").
+    // "senjata random lokasinya bisa di looting"). Sebagian ditaruh DEKAT
+    // spawn pemain (5–25 m) supaya langsung terlihat saat mulai main.
     const spots = world.loot;
     spots.forEach((p, i) => this.addLoot(p.x, p.z, ['bow', 'sword', 'arrows'][i % 3], p.id));
+    const playerSpawn = this.s.player.position;
     for (let i = 0; i < LOOT_SPOTS; i++) {
-      const sp = world.spawns[(i * 7 + 3) % world.spawns.length];
-      const ang = rng() * Math.PI * 2;
-      const rad = 4 + rng() * 22;
-      const x = Math.max(-500, Math.min(500, sp.x + Math.cos(ang) * rad));
-      const z = Math.max(-500, Math.min(500, sp.z + Math.sin(ang) * rad));
+      let x, z;
+      if (i < 10) {
+        // 10 loot pertama: cincin dekat pemain (6–24 m) — pasti terlihat di awal.
+        const ang = (i / 10) * Math.PI * 2 + rng() * 0.5;
+        const rad = 6 + rng() * 18;
+        x = playerSpawn.x + Math.cos(ang) * rad;
+        z = playerSpawn.z + Math.sin(ang) * rad;
+      } else {
+        const sp = world.spawns[(i * 7 + 3) % world.spawns.length];
+        const ang = rng() * Math.PI * 2;
+        const rad = 4 + rng() * 22;
+        x = sp.x + Math.cos(ang) * rad;
+        z = sp.z + Math.sin(ang) * rad;
+      }
+      x = Math.max(-500, Math.min(500, x));
+      z = Math.max(-500, Math.min(500, z));
       const type = ['sword', 'bow', 'arrows'][Math.floor(rng() * 3)];
       this.addLoot(x, z, type, `wild-${i}`);
     }
 
     // Bot: menyerang, mengejar, membawa senjata (berpura-pura jadi player).
+    // Ken: spawn RANDOM di seluruh map (bukan cuma di titik spawn), 2 dekat pemain
+    // supaya langsung ada aksi, sisanya tersebar acak (±1-2 per ~100 m).
     const geo = new THREE.CapsuleGeometry(0.38, 1.0, 3, 6);
     for (let i = 0; i < BOT_COUNT; i++) {
-      const p = world.spawns[(i * 11) % world.spawns.length];
       const w = botWeapon(rng);
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x785c36 }));
-      mesh.position.set(p.x + 4, 0.9, p.z + 3);
+      if (i < 2) {
+        const ang = rng() * Math.PI * 2;
+        const rad = 30 + rng() * 25;
+        mesh.position.set(
+          Math.max(-500, Math.min(500, playerSpawn.x + Math.cos(ang) * rad)), 0.9,
+          Math.max(-500, Math.min(500, playerSpawn.z + Math.sin(ang) * rad))
+        );
+      } else {
+        // Acak merata di seluruh map (bukan di titik spawn supaya tak berkumpul).
+        mesh.position.set(-480 + rng() * 960, 0.9, -480 + rng() * 960);
+      }
       this.root.add(mesh);
       // Senjata tampak di tangan bot (visual sederhana).
       let heldMesh = null;
@@ -163,8 +188,17 @@ export class SoloCombat {
       else b.state = 'patrol';
 
       if (b.state === 'patrol') {
-        b.mesh.position.x = b.home.x + Math.sin(performance.now() * 0.0006 + b.phase) * 2;
-        b.mesh.position.z = b.home.z + Math.cos(performance.now() * 0.0006 + b.phase) * 2;
+        // Berkeliaran luas (radius 14 m), bukan diam di titik — terasa hidup.
+        const t = performance.now() * 0.00028 + b.phase;
+        const tx = b.home.x + Math.sin(t) * 14;
+        const tz = b.home.z + Math.cos(t * 0.8) * 14;
+        const dd = Math.hypot(tx - b.mesh.position.x, tz - b.mesh.position.z);
+        if (dd > 0.4) {
+          const step = Math.min(BOT_SPEED * 0.5 * dt, dd);
+          b.mesh.position.x += ((tx - b.mesh.position.x) / dd) * step;
+          b.mesh.position.z += ((tz - b.mesh.position.z) / dd) * step;
+          b.mesh.rotation.y = Math.atan2(tx - b.mesh.position.x, tz - b.mesh.position.z);
+        }
       } else {
         b.mesh.lookAt(p.x, b.mesh.position.y, p.z);
         if (b.state === 'chase' && d > BOT_ATTACK_RANGE * 0.85) {

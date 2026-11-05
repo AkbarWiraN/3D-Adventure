@@ -108,10 +108,12 @@ export class Hud {
     this._last.prompt = text;
     if (!text) {
       this.nodes.prompt.classList.add('hidden');
+      el('mb-interact')?.classList.add('hidden');   // HP: tombol AMBIL ikut hilang
     } else {
       this.nodes.prompt.classList.remove('hidden');
       this.nodes.promptKey.textContent = key;
       this.nodes.promptText.textContent = text;
+      el('mb-interact')?.classList.remove('hidden'); // HP: tombol AMBIL muncul (ganti E)
     }
   }
 

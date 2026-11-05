@@ -389,7 +389,12 @@ export class Room {
         d: p.dead ? 1 : 0,
       });
     }
-    return { t: 'snapshot', tick: this.tick, self: this._self(me), players: others };
+    const lootNear = [];
+    for (const l of this.loot.values()) {
+      if (Math.hypot(l.x - me.x, l.z - me.z) > NETWORK.AOI_RADIUS) continue;
+      lootNear.push({ id: l.id, type: l.type, x: q(l.x), z: q(l.z) });
+    }
+    return { t: 'snapshot', tick: this.tick, self: this._self(me), players: others, loot: lootNear };
   }
 
   _self(p) {
