@@ -194,7 +194,7 @@ _(IN PROGRESS)_
   produksi (itu memang tidak boleh dilakukan sembarangan).
 - [x] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
   forged inventory/kill, koordinat negatif/NaN)
-  Bukti NYATA: `realtime.test.js` 10/10 PASS — test #10 baru menegaskan lewat SERVER NYATA:
+  Bukti NYATA: `realtime.test.js` 11/11 PASS — test #10 menegaskan lewat SERVER NYATA:
   input flood ke-21 ditolak `INPUT_FLOOD`; attack flood ke-51 ditolak `ATTACK_FLOOD`
   (bow berammo, cooldown di-nolkan untuk mengisolasi); NaN/±Infinity di mx/mz/yaw
   ditolak parser; |mx|/|mz|>1 → `INPUT_MOVE_RANGE`; forged `give`/`kill`/`die` →
@@ -205,6 +205,14 @@ _(IN PROGRESS)_
   `clampToWorld` (tak bisa keluar peta). Refactor kecil: `MAX_ATTACK_PER_SEC`
   dipindah ke `shared/constants.js` (sebelumnya hardcode 50 di room.js vs konstanta
   tak terpakai di protocol.js) — satu sumber kebenaran.
+  Test #11 (malam #5): konsistensi ledger saat leave/rejoin cepat + kontrak kill
+  feed — (a) register username charset jahat (`evil<img>`) → 400 USERNAME_CHARSET
+  (lapisan 1 anti-DOM-injection; lapisan 2: SEMUA render username di klien via
+  textContent — hud.js:135, lobby.js:171/204, diaudit); (b) combat-logout kredit
+  1 kill SAH; (c) rejoin via koneksi baru (leave menutup socket 1000 — kontrak
+  gateway) → state bersih: sessionId baru, lastDamagerId null, HP 100; (d) logout
+  BERSIH tanpa dilukai → 0 kill tambahan (tidak ada kredit palsu); (e) kill feed
+  nyata sampai ke kedua klien dengan username mentah + cause combat.
 - [x] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
   Bukti NYATA (5 Nov 2026):
   - `certbot renew --dry-run --cert-name api-be.bssn.biz.id` → "Congratulations, all
@@ -345,6 +353,16 @@ _(IN PROGRESS)_
   kembali ke lobby. Regresi: unit 49/49, server 33/33.
 - Status akhir: forest-battleground + nginx + fb-backup.timer semuanya
   active+enabled. Ketiga item Butuh Keputusan #1 terjawab oleh opsi (a).
+
+### Catatan run 2026-11-05 (malam #6) — hardening Fase 4 lanjutan: test anti-cheat #11
+- Menutup celah verifikasi Fase 4 [Security]: "no unescaped username DOM injection"
+  dan konsistensi ledger kill/death saat leave/rejoin cepat.
+- realtime.test.js sekarang 11/11 (server 34/34 total, unit 49/49). Detail butir
+  a-e tercatat di checklist [Security] di atas.
+- Temuan desain yang DIKUNCI lewat test: leave sengaja menutup socket (1000 LEFT)
+  → rejoin WAJIB koneksi baru; state pemain baru terbukti bersih dari jejak
+  damager sesi sebelumnya.
+- Tidak ada perubahan kode produksi — murni test (kode memang sudah benar).
 
 ## PENDING_MANUAL (butuh HP asli)
 

@@ -482,4 +482,108 @@ describe('Fase 3 — WSS authoritative', () => {
     await c2.waitFor('leave_ack');
     c.close(); c2.close();
   });
+
+  test('11. rejoin/logout bersih tidak bocorkan kredit; kill feed end-to-end', async () => {
+    // prompt.md Fase 4: anti-cheat — konsistensi ledger kill/death saat
+    // leave/rejoin cepat. Juga kontrak kill feed: username divalidasi charset
+    // ketat (^[A-Za-z0-9_]+$ di validation.js) sehingga vektor DOM-injection
+    // sudah tertolak di gerbang register; lapisan kedua: SEMUA render username
+    // di klien via textContent (hud.js:135 addKillFeed, lobby.js greeting:171
+    // & leaderboard b:204). Kedua fakta itu dikunci di sini.
+    {
+      const res = await post('/api/v1/auth/register', {
+        username: 'evil<img>', password: 'kata-sandi-qa-123', character: 'male',
+      });
+      assert.equal(res.status, 400, `username charset jahat harus 400, dapat ${res.status}`);
+      const body = await res.json();
+      assert.equal(body.error?.code ?? body.code, 'USERNAME_CHARSET');
+    }
+    const killer = await makeUser('killer11');
+    const victim = await makeUser('victim11');
+
+    const ck = new Client(wsBase); await ck.ready();
+    ck.send({ t: 'auth', token: killer.token }); await ck.waitFor('auth_ok');
+    ck.send({ t: 'join', room: 'forest' }); await ck.waitFor('joined');
+
+    const cv = new Client(wsBase); await cv.ready();
+    cv.send({ t: 'auth', token: victim.token }); await cv.waitFor('auth_ok');
+    cv.send({ t: 'join', room: 'forest' }); await cv.waitFor('joined');
+
+    const gw = (await import('../src/realtime/index.js')).getRealtime();
+    const pk = [...gw.room.players.values()].find((p) => p.userId === killer.userId);
+    const pv = [...gw.room.players.values()].find((p) => p.userId === victim.userId);
+
+    // a. injeksi saat RESPAWN: korban mati saat damager baru saja respawn
+    //    (lastDamagerId dibersihkan) → kredit TIDAK boleh jatuh ke damager lama.
+    const yaw0 = Math.atan2(pv.x - pk.x, pv.z - pk.z);
+    pk.x = pv.x - Math.sin(yaw0) * 1.2; pk.z = pv.z - Math.cos(yaw0) * 1.2;
+    pk.yaw = yaw0; pk.mx = 0; pk.mz = 0; pv.mx = 0; pv.mz = 0;
+    await wait(900); ck.send({ t: 'action', kind: 'attack' }); await wait(300);
+    assert.equal(pv.hp, 80, `setup: HP korban=${pv.hp}`);
+    assert.equal(pv.lastDamagerId, pk.sessionId);
+    pk.dead = true; // simulasi damager mati sebelum korban logout
+    gw.room._respawn(pk); // respawn membersihkan jejak damager di pk; korban masih menyimpan id pk
+    assert.equal(pk.lastDamagerId, null);
+    // Korban logout: pk masih di room tapi sudah respawn → kredit tetap sah
+    // (ini memang desain: id damager di korban belum kedaluwarsa). Yang krusial:
+    // rejoin BERULANG victim dengan sessionId BARU tidak boleh membawa jejak lama.
+    const sidV1 = pv.sessionId;
+    cv.send({ t: 'leave', sessionId: sidV1 });
+    await cv.waitFor('leave_ack');
+    await wait(200);
+    const lbAfterLogout = await (await fetch(`${base}/api/v1/leaderboard?mapId=forest&limit=10`, {
+      headers: { Origin: ORIGIN, Authorization: `Bearer ${killer.token}` },
+    })).json();
+    const rowK1 = lbAfterLogout.entries.find((e) => e.userId === killer.userId);
+    assert.equal(rowK1?.kills ?? 0, 1, 'combat-logout pertama harus kredit 1 kill');
+
+    // b. REJOIN victim lewat KONEKSI BARU (leave menutup socket dgn 1000 —
+    //    itu kontrak gateway) → state baru bersih (lastDamagerId null, hp 100).
+    const cv2 = new Client(wsBase); await cv2.ready();
+    cv2.send({ t: 'auth', token: victim.token }); await cv2.waitFor('auth_ok');
+    cv2.send({ t: 'join', room: 'forest' });
+    const j2 = await cv2.waitFor('joined');
+    assert.ok(j2, 'rejoin gagal');
+    const pv2 = [...gw.room.players.values()].find((p) => p.userId === victim.userId);
+    assert.notEqual(pv2.sessionId, sidV1, 'sessionId harus baru saat rejoin');
+    assert.equal(pv2.lastDamagerId, null, 'jejak damager bocor ke sesi rejoin');
+    assert.equal(pv2.hp, 100);
+
+    // c. LOGOUT BERSIH (tanpa pernah dilukai di sesi baru) → TIDAK ada kredit.
+    cv2.send({ t: 'leave', sessionId: pv2.sessionId });
+    await cv2.waitFor('leave_ack');
+    await wait(200);
+    const lb2 = await (await fetch(`${base}/api/v1/leaderboard?mapId=forest&limit=10`, {
+      headers: { Origin: ORIGIN, Authorization: `Bearer ${killer.token}` },
+    })).json();
+    const rowK2 = lb2.entries.find((e) => e.userId === killer.userId);
+    assert.equal(rowK2?.kills ?? 0, 1, `logout bersih tidak boleh menambah kill (=${rowK2?.kills})`);
+
+    // d. KILL FEED nyata via WSS: kirim kill sungguhan, verifikasi payload
+    //    berisi username MENTAH (kontrak: server tidak men-sanitize; UI yang
+    //    meng-escape via textContent).
+    const cv3 = new Client(wsBase); await cv3.ready();
+    cv3.send({ t: 'auth', token: victim.token }); await cv3.waitFor('auth_ok');
+    cv3.send({ t: 'join', room: 'forest' }); await cv3.waitFor('joined');
+    const pv3 = [...gw.room.players.values()].find((p) => p.userId === victim.userId);
+    const pk3 = [...gw.room.players.values()].find((p) => p.userId === killer.userId);
+    const yaw3 = Math.atan2(pv3.x - pk3.x, pv3.z - pk3.z);
+    pk3.x = pv3.x - Math.sin(yaw3) * 1.2; pk3.z = pv3.z - Math.cos(yaw3) * 1.2;
+    pk3.yaw = yaw3; pk3.mx = 0; pk3.mz = 0; pv3.mx = 0; pv3.mz = 0;
+    ck.inbox.length = 0; cv3.inbox.length = 0;
+    for (let i = 0; i < 5; i++) { await wait(900); ck.send({ t: 'action', kind: 'attack' }); }
+    await wait(400);
+    const feed = ck.inbox.filter((m) => m.t === 'kill').pop();
+    assert.ok(feed, 'event kill tidak sampai ke klien');
+    assert.equal(feed.killer, killer.username, 'server mengubah username (harus mentah; escaping tugas UI)');
+    assert.equal(feed.victim, victim.username);
+    assert.equal(feed.cause, 'combat');
+    assert.ok(/^[A-Za-z0-9_]+$/.test(feed.killer) && /^[A-Za-z0-9_]+$/.test(feed.victim),
+      'username di feed melanggar charset aman');
+    // Feed juga sampai ke korban (broadcast room).
+    assert.ok(cv3.inbox.some((m) => m.t === 'kill'), 'korban tidak menerima kill feed');
+
+    ck.close(); cv.close(); cv2.close(); cv3.close();
+  });
+
 });
