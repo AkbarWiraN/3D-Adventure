@@ -381,6 +381,11 @@ _(IN PROGRESS)_
 - **Regresi hijau**: unit 49/49, server suite 36/36 (http+security+auth+realtime),
   build:pages 38 file 2.11 MB audit lolos.
 - **Tanpa dampak Solo/offline** — heartbeat hanya di gateway WSS.
+- **Deploy produksi + bukti nyata**: forest-battleground.service di-restart dengan
+  kode heartbeat (PID baru, active; guard publik 200 Origin sah / 403 tanpa Origin).
+  Probe WSS nyata ke wss://api-be.bssn.biz.id/ws (login qa_persist_b, join forest):
+  PING WS-level dari server produksi diterima klien setelah ~30 s (sebelum patch
+  server tidak pernah mengirim ping), koneksi sehat TIDAK diputus, leave normal.
 - Catatan jujur: ping/pong control frame dijawab OTOMATIS oleh browser/WebSocket API,
   jadi tidak ada perubahan yang dibutuhkan di klien FE; zombie di sisi nyata terjadi
   saat proses browser mati total (bukan tab lag biasa, yang tetap mem-pong).
