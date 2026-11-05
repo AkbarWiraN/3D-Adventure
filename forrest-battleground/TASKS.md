@@ -567,3 +567,10 @@ _(IN PROGRESS)_
 - [M] [FE] Uji multitouch joystick + drag-look simultan di layar sentuh nyata
 - [M] [FE] Cek safe-area (notch) di iPhone nyata
 
+
+## Run 2026-11-05 malam #16 (cron autonomous)
+- Pra-cek: service forest-battleground + nginx active; fb-backup.timer (next 03:17) & fb-disk-check.timer (next 04:03) enabled; disk 38 GB free. Tanpa insiden sesi paralel.
+- Healthz sesuai desain: loopback 127.0.0.1:3000/healthz → 200 {ok:true,db:true}; publik api-be.bssn.biz.id/healthz → 403 (loopback-only by design).
+- Verifikasi penuh (PATH=/opt/node24/bin, gotcha README baris 44): server suite 36/36 PASS (35.4s) · unit FE 49/49 PASS · prod-smoke produksi 14/14 PASS (register→JWT→leaderboard→forest status→WS origin-deny/auth/join→forged-token 401→logout revoke).
+- Checklist: tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden).
+- Tidak ada perubahan kode. (Sempat false alarm MODULE_NOT_FOUND pada prod-smoke — murni salah ketik path `test/` vs `tests/`; rerun dengan path benar 14/14 PASS, bukan drift.)
