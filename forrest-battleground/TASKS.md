@@ -752,3 +752,21 @@ _(IN PROGRESS)_
 - Healthz sesuai desain: loopback 127.0.0.1:3000/healthz → 200; publik tanpa Origin → 403 (loopback-only by design).
 - Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS (~35 s) · unit FE 49/49 PASS (node --test tests/unit/*.test.js) · prod-smoke produksi 14/14 PASS (origin-deny 403 → 401 → register 409 → login JWT → users/me → leaderboard → forest status online=0 hardCap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-11 (malam #42) — verifikasi penuh, tanpa drift, tanpa item baru
+- Pra-cek bersih: forest-battleground + nginx active; fb-backup.timer &
+  fb-disk-check.timer active; backend bind 127.0.0.1:3000; disk 38 GB free
+  (44%); origin/main sinkron di 06a1386 sebelum run. Tanpa insiden sesi paralel.
+- Healthz sesuai desain: loopback 127.0.0.1:3000/healthz -> 200; publik tanpa
+  Origin -> 403 (loopback-only by design).
+- Verifikasi penuh (PATH=/opt/node24/bin):
+  - Server suite 36/36 PASS (~35 s)
+  - Unit FE 49/49 PASS (node --test tests/unit/*.test.js)
+  - Prod-smoke produksi 14/14 PASS: origin-deny 403 (no-origin & evil) ->
+    protected 401 -> register idempotent 409 -> login JWT -> users/me ->
+    leaderboard top10+me -> forest status (online=0, hardCap=8) -> WS
+    origin-deny 1008 -> auth_ok -> joined 20 Hz -> forged-token 401 ->
+    logout revoke 401.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni
+  PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi
+  paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
