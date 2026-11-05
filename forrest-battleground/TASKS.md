@@ -271,6 +271,16 @@ _(IN PROGRESS)_
 - PATH HALUS produksi: URL situs FB = /3D-Adventure/forrest-battleground/
   (root = GHOSTDASH). browser-smoke produksi PASS dengan FRONT_URL tersebut.
 
+### Catatan run 2026-11-05 (malam #2) — favicon.svg sungguhan, whitelist build 5/5
+- Entri basi `favicon.svg` di whitelist build-pages DITUNTASKAN dengan membuat ikon
+  sungguhan (SVG 496 B: pinus + pedang, palet game #1a1410/#2e5d34/#c9a86a) dan
+  mereferensikannya di `index.html` (`<link rel="icon" type="image/svg+xml">`).
+- Bukti: build:pages "entry disalin 5/5", 38 file 2.11 MB, audit lolos;
+  `dist/favicon.svg` ada + `dist/index.html` memuat link; serve.mjs lokal:
+  GET / 200, GET /favicon.svg 200 content-type image/svg+xml.
+- Regresi: unit 49/49, server 33/33. Pages deploy commit ini akan membawa ikon
+  ke produksi (path relatif aman untuk subpath /3D-Adventure/forrest-battleground/).
+
 ## Butuh Keputusan
 
 _(kosong)_
