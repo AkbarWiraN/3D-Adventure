@@ -574,3 +574,9 @@ _(IN PROGRESS)_
 - Verifikasi penuh (PATH=/opt/node24/bin, gotcha README baris 44): server suite 36/36 PASS (35.4s) · unit FE 49/49 PASS · prod-smoke produksi 14/14 PASS (register→JWT→leaderboard→forest status→WS origin-deny/auth/join→forged-token 401→logout revoke).
 - Checklist: tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden).
 - Tidak ada perubahan kode. (Sempat false alarm MODULE_NOT_FOUND pada prod-smoke — murni salah ketik path `test/` vs `tests/`; rerun dengan path benar 14/14 PASS, bukan drift.)
+
+### 2026-11-05 (malam #17)
+- Pra-cek: forest-battleground + nginx active; fb-backup.timer & fb-disk-check.timer enabled; disk 38 GB free; tanpa insiden.
+- Healthz: loopback 200 {"ok":true,"db":true}; publik 403 (by design).
+- Verifikasi penuh: server 36/36 PASS, unit FE 49/49 PASS, prod-smoke 14/14 PASS — tanpa drift.
+- Checklist: tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden).
