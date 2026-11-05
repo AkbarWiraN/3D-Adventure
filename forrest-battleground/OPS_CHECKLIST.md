@@ -48,10 +48,51 @@ PERINGATAN (5 Nov): mematikan nginx saja TIDAK membebaskan 80/443 untuk game;
 Apache yang di-start manual (`apache2 -k start`, bukan systemd) juga harus
 di-stop sebelum nginx bisa bind. Koordinasikan dengan sesi pentest.
 
+## Prosedur ROLLBACK (backend / DB / nginx)
+Ditulis 5 Nov 2026 (malam #8) — memenuhi checklist QA Fase 4 (rollback procedure).
+
+### A. Rollback KODE backend (deploy baru bermasalah)
+```bash
+cd ~/3D-Adventure/forrest-battleground
+git log --oneline -5                       # temukan commit terakhir yang sehat
+git checkout <commit-sehat> -- server/     # atau: git revert <commit-rusak>
+sudo systemctl restart forest-battleground.service
+curl -s http://127.0.0.1:3000/api/v1/health   # harus {"status":"ok"} lokal
+curl -s https://api-be.bssn.biz.id/api/v1/health -H 'Origin: https://akbarwiran.github.io'
+```
+Migrasi SQLite bersifat additive & idempotent (`fresh:[]` saat restart) — rollback kode
+TIDAK perlu rollback schema; kolom/tabel baru dibiarkan (tidak dipakai kode lama).
+
+### B. Rollback DATABASE (restore dari backup)
+```bash
+sudo systemctl stop forest-battleground.service
+ls -t ~/3D-Adventure/forrest-battleground/backups/ | head    # pilih backup terbaru
+sudo -u ubuntu cp /var/lib/forest-battleground/game.sqlite /tmp/game-pre-restore.sqlite   # safety copy
+sudo -u ubuntu /opt/node24/bin/node ~/3D-Adventure/forrest-battleground/server/scripts/backup-db.mjs \
+  --verify ~/3D-Adventure/forrest-battleground/backups/<file>   # integrity dulu!
+sudo -u ubuntu bash -c 'rm -f /var/lib/forest-battleground/game.sqlite{-wal,-shm}'
+sudo -u ubuntu cp ~/3D-Adventure/forrest-battleground/backups/<file> /var/lib/forest-battleground/game.sqlite
+sudo systemctl start forest-battleground.service
+```
+Sudah didrill nyata di PRODUKSI 5 Nov (malam #3): downtime <60 s, integrity ok,
+users+leaderboard queryable. Verifikasi restore: `server/tests/restore-drill.mjs`.
+
+### C. Rollback FRONTEND Pages
+```bash
+# GitHub → repo 3D-Adventure → Actions → pages.yml → pilih run sehat → Re-run,
+# atau revert commit frontend lalu push (deploy ~1 menit).
+```
+### D. Rollback config nginx
+```bash
+sudo nginx -t && sudo systemctl reload nginx   # setelah edit; backup harian config ada di /etc/nginx
+# default_server cadangan pra-hardening (5 Nov): ~/.hermes/cache/scratch/nginx-default.bak-*
+```
 ## Lokasi penting
+
 - Kode: `~/3D-Adventure/forrest-battleground/server` (env: `server/.env`)
 - DB SQLite: `/var/lib/forest-battleground/game.sqlite` (+ -wal/-shm)
 - Unit: `/etc/systemd/system/forest-battleground.service`, `fb-backup.{service,timer}`
 - Nginx vhost: `/etc/nginx/sites-available/api-be.bssn.biz.id` → sites-enabled
 - Sertifikat: `/etc/letsencrypt/live/api-be.bssn.biz.id/`
+- Backup DB: `~/3D-Adventure/forrest-battleground/backups/` (ReadWritePaths fb-backup.service)
 - Deploy frontend: push ke `main` → workflow `.github/workflows/pages.yml`

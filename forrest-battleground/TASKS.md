@@ -335,6 +335,24 @@ _(IN PROGRESS)_
   di `users/me` → **401**; logout kedua → **401** (idempotent). Health/Origin guard tetap
   200 Origin sah / 403 tanpa Origin. nginx + fb-backup.timer tetap active+enabled.
 
+### Catatan run 2026-11-05 (malam #8) — tabel acceptance AT-01..AT-32 + rollback procedure + hardening default_server
+- **ACCEPTANCE.md dibuat** (menutup checklist QA Fase 4 "Complete final acceptance table AT-01.."):
+  32 skenario dipetakan ke bukti suite nyata — 27 PASS penuh, 3 PASS emulator/simulasi
+  (AT-03 mobile, AT-20 reconnect-drop, AT-32 long gameplay) + 1 PENDING_MANUAL murni (AT-31
+  real devices). Tidak ada klaim production-complete; AT-31 tetap menunggu HP asli.
+- **Prosedur ROLLBACK resmi** ditulis di OPS_CHECKLIST.md (kode/DB/frontend/nginx) —
+  sebelumnya checklist QA "rollback procedure" tidak punya dokumen. Path backup diverifikasi
+  nyata ke ~/3D-Adventure/forrest-battleground/backups/ (bukan /var/lib — disesuaikan dengan
+  ReadWritePaths fb-backup.service).
+- **Hardening nginx default_server**: sebelumnya vhost default bawaan Ubuntu menyajikan
+  halaman contoh nginx (200) untuk SEMBARANG Host/IP di port 80 — permukaan serangan tanpa
+  manfaat. Diganti `return 444` (tutup koneksi). Bukti curl: Host asing/IP → 000 (ditutup);
+  vhost game tidak terganggu (api-be http→301, https Origin sah 200 / tanpa 403);
+  ACME challenge /.well-known tetap di vhost api-be sendiri (tidak terpengaruh).
+  File cadangan pra-hardening: ~/.hermes/cache/scratch/nginx-default.bak-*.
+- Pra-cek produksi bersih: 3 service active+enabled, cert LE terlayani (s/d 2 Feb 2027),
+  guard 200/403. Tidak ada drift sesi paralel malam ini.
+
 ## Butuh Keputusan
 
 1. ~~Konflik port 80/443 Apache vs nginx~~ — TERATASI 5 Nov 16:13: sesi pentest
