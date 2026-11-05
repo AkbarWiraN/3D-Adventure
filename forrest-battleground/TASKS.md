@@ -450,6 +450,30 @@ _(IN PROGRESS)_
   damager sesi sebelumnya.
 - Tidak ada perubahan kode produksi — murni test (kode memang sudah benar).
 
+
+### Catatan run 2026-11-05 (malam #10) — risk log prompt.md dituntaskan + regresi hijau
+- Pra-cek produksi bersih: forest-battleground + nginx + fb-backup.timer active+enabled;
+  guard publik 200 (Origin sah) / 403 (tanpa Origin); Pages 200. Tanpa drift sesi paralel.
+- Kerja run ini: menutup RISK LOG prompt.md yang 6 baris masih "BELUM DIUJI" padahal
+  bukti sudah ada dari run-run sebelumnya — diverifikasi ulang nyata sebelum ditulis:
+  (1) VPS load → load-stage.mjs PASS: 2/4/8 klien tick 19.8–19.9 Hz, CPU 1.7–2.2%,
+      RSS ≤196 MB, snapshot p95 ≤102 ms, 0 socket error (re-run hari ini).
+  (2) Kebocoran secret → dist audit runtime bersih (grep dist: nol AUTH_SECRET/argon2),
+      git history bebas .env (git log -p -- .env kosong), build:pages 38 file 2.11 MB
+      audit lolos.
+  (3) Double kill/death → schema diverifikasi: elimination_events.event_id PRIMARY KEY
+      + INSERT OR IGNORE + bump stat hanya bila changes>0, atomic db.transaction —
+      ledger idempoten by-construction, sudah teruji realtime 13/13.
+  (4) Phishing custom endpoint → warning `custom-warn` ada di index.html:134 dan
+      otomatis tampil saat URL non-default (screens.js updateCustomWarning).
+  (5) WAL backup corrupt → restore-drill.mjs PASS hari ini (sintetis 7 user, integrity
+      ok, leaderboard works) + restore drill PRODUKSI sudah dilakukan malam #3.
+  (6) Mobile landscape FPS tetap BELUM DIUJI jujur (butuh HP asli → PENDING_MANUAL).
+- Risk log prompt.md diperbarui: 5 risiko "BELUM DIUJI" → TERUJI dgn bukti terukur;
+  status Fase 4 di tabel STATUS PROYEK → VERIFIED (kecuali QA HP asli, AT-31).
+- Regresi hijau run ini: unit 49/49, server suite 36/36, build:pages audit lolos.
+- Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader

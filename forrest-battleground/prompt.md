@@ -752,7 +752,7 @@ COMBAT_LOGOUT_SECONDS=10
 | 1 — Frontend world+controls & backend skeleton CORS/SQLite | **VERIFIED** | unit 42/42; HTTP+security 32/32; `browser-smoke.mjs` PASS (WebGL nyata, Solo loot→5 hit→death→respawn→exit, listener bus 0); `mobile-emu-check.mjs` PASS (390×844 DPR3, touch emulation, joystick gerak 2.87 m, multitouch joystick+look simultan, rotate-hint none); build:pages 37 file 2.07 MB audit lolos; dist tanpa server/.env/DB |
 | 2 — Solo combat + REST auth/lobby/leaderboard | **VERIFIED** | unit 42/42; backend auth/http/security 32/32; `browser-smoke.mjs` PASS (register→login→lobby onlineCount 0/8 authoritative→leaderboard empty-state→Solo tetap jalan); `leak-20x-check.mjs` PASS (20× masuk-keluar: sesi null, listener 0, scene graph identik 368 obj/232 geo/59 mat/38 loot/4 bot); Argon2id terukur 115 ms/hash di 2 vCPU |
 | 3 — Realtime authoritative PvP + persistent leaderboard + exit | **CODE COMPLETE / QA PENDING** | `realtime.test.js` 9/9; `load-stage.mjs` PASS (PvP pedang-vs-busur 5 hit, duel×2, respawn 3 s, load 2/4/8 klien tick 19.8–19.9 Hz, snapshot p50 100–101 ms, RSS 151→196 MB); produksi WSS/TLS: Origin asing/null → close 1008. **Belum** PvP dua browser nyata lintas jaringan |
-| 4 — Hardening/load/deploy | **IN PROGRESS** | GPU leak fix A-06 + uji invariant (leak-20x PASS); sisa: load 8→16, backup/restore drill, anti-cheat audit, deploy Pages final |
+| 4 — Hardening/load/deploy | **VERIFIED (kecuali QA HP asli)** | logout+revokasi jti 12/12; anti-cheat audit 13/13 (flood/NaN/forged/heartbeat zombie); load 2/4/8/16 klien PASS (tick 19.9 Hz, CPU ≤5.3%, RSS ≤198 MB); backup WAL + restore drill PRODUKSI nyata (downtime <60 s, data identik); deploy Pages final 38 file 2.11 MB audit lolos + browser-smoke full-produksi PASS; acceptance AT-01..AT-32 + rollback procedure; certbot dry-run OK; nginx default_server 444. Sisa: PENDING_MANUAL perangkat HP asli (AT-31) |
 
 Gunakan status `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `CODE COMPLETE / QA PENDING`, `VERIFIED`.
 
@@ -797,16 +797,16 @@ tertulis `[x]` di TASKS.md tanpa memenuhi isi spesifik butir checklist. Itu pela
 
 | Prioritas | Risiko | Mitigasi / status |
 |---|---|---|
-| HIGH | VPS kehabisan 2vCPU/4GB saat load/Argon2/WS | Cap awal8, rate limit auth concurrency, profiling tick, AoI, no DB writes/tick; BELUM DIUJI |
-| HIGH | Frontend statis membocorkan file server/secret | Build whitelist dist-only + test artifact; BELUM DIUJI |
+| HIGH | VPS kehabisan 2vCPU/4GB saat load/Argon2/WS | Cap awal 8, rate limit auth, profiling tick, AoI, no DB writes/tick; TERUJI load-stage 2/4/8/16 klien: tick 19.8–19.9 Hz stabil, CPU ≤5.3%, RSS ≤198 MB, Argon2id 115 ms/hash — headroom besar |
+| HIGH | Frontend statis membocorkan file server/secret | Build whitelist dist-only + audit ganda di CI + audit dist runtime; TERUJI: dist 38 file tanpa server/.env/sqlite/md, grep dist bebas AUTH_SECRET/argon2, git history bebas .env |
 | HIGH | Ilusi 'API hanya dari GitHub Pages' | Origin browser-only, spoof test, JWT+authoritative rules; LIMITASI DESAIN |
-| HIGH | Mobile landscape FPS drop di vegetasi padat | Instancing/chunk/LOD/adaptive pixel ratio; BELUM DIUJI |
-| HIGH | Double kill/death saat reconnect atau duplicate event | Unique event ledger + SQLite transaction; BELUM DIUJI |
-| HIGH | Endpoint custom mengarah phishing server | Default resmi dan explicit warning sebelum login; BELUM DIUJI |
+| HIGH | Mobile landscape FPS drop di vegetasi padat | Instancing/chunk/LOD/culling; BELUM DIUJI di HP asli (PENDING_MANUAL — SwiftShader headless tidak valid) |
+| HIGH | Double kill/death saat reconnect atau duplicate event | Unique event ledger (`elimination_events.event_id` PRIMARY KEY, `INSERT OR IGNORE` + stat bump hanya bila row baru, atomic SQLite transaction); TERUJI realtime.test.js (rejoin state bersih, combat-logout kredit tepat 1, ledger idempoten) |
+| HIGH | Endpoint custom mengarah phishing server | Default resmi + warning kustom `custom-warn` ("⚠ Server kustom: jangan masukkan kata sandi ke server yang tidak Anda percayai") tampil otomatis saat URL non-default; TERUJI browser-smoke |
 | MED | Enemy always visible di minimap mengurangi stealth | AoI movement + 1–2Hz coarse enemy map, configurable visibility; RISIKO DITERIMA |
 | MED | 1km² map membuat encounter jarang | POI/loot clusters dan minimap, spawn safe; RISIKO DITERIMA |
 | MED | Token hilang saat browser refresh | Re-login MVP, jelas dalam README; RISIKO DITERIMA |
-| MED | SQLite WAL backup corrupt kalau copy sembarangan | Online backup + restore drill + disk rotation; BELUM DIUJI |
+| MED | SQLite WAL backup corrupt kalau copy sembarangan | Online Backup API + fb-backup.timer harian + retensi/rotasi; TERUJI: restore-drill sintetis PASS + restore drill PRODUKSI nyata (integrity ok, users 25, leaderboard queryable, downtime <60 s) |
 
 ## 10. HANDOFF CHECKPOINT — DIUPDATE SEBELUM HERMES SELESAI/TOKEN HABIS
 
