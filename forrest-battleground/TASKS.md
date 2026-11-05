@@ -298,15 +298,10 @@ _(IN PROGRESS)_
 
 ## Butuh Keputusan
 
-1. **Konflik port 80/443 antara game (nginx) dan sesi pentest (Apache manual)** —
-   status 5 Nov malam: Apache Subang-CSIRT memegang 80/443 dengan cert self-signed
-   di SNI api-be.bssn.biz.id → API game publik TIDAK bisa dipakai dari Pages.
-   Backend game sendiri sehat (127.0.0.1:3000). Pilihan:
-   (a) kalau retest selesai → stop Apache, `systemctl enable --now nginx`
-       (urutan lengkap di OPS_CHECKLIST.md);
-   (b) kalau dua-duanya harus hidup → Apache pindah port (mis. 8080/8443) atau
-       nginx dipindah port lain — perlu arsitektur port yang disepakati;
-   (c) biarkan sementara (game down publik) sampai sesi pentest selesai.
+1. ~~Konflik port 80/443 Apache vs nginx~~ — TERATASI 5 Nov 16:13: sesi pentest
+   menonaktifkan Apache sendiri (`disable --now`); nginx di-enable --now (malam #5),
+   cert LE asli terlayani, browser-smoke produksi PASS. Kalau Apache dibutuhkan
+   lagi nanti, tetap perlu kesepakatan port (lihat OPS_CHECKLIST.md).
 2. **Sesi paralel berulang kali mematikan service game (3× dalam 1 hari).**
    Usul: sepakati bahwa sesi lain tidak menyentuh forest-battleground.service /
    nginx.service / fb-backup.timer, atau jadwalkan jendela pentest yang jelas.
@@ -333,6 +328,23 @@ _(IN PROGRESS)_
   oleh sesi paralel. Checklist ops sudah ada tapi tidak dipatuhi sesi lain.
   Butuh keputusan pemilik (lihat Butuh Keputusan).
 
+
+### Catatan run 2026-11-05 (malam #5) — konflik Apache SELESAI, produksi pulih penuh
+- Sesi pentest menutup Apache sendiri 16:13 (`systemctl disable --now apache2`,
+  tercatat di journal; port 80/443 kosong). Konflik port dari run malam #4
+  teratasi TANPA intervensi — tidak ada proses orang lain yang dimatikan.
+- Nginx di-enable --now (sebelumnya disabled): bind 80/443 OK, SNI
+  api-be.bssn.biz.id kembali menjawab cert Let's Encrypt asli (CN benar,
+  issuer YE2, valid s/d 2 Feb 2027), HSTS aktif.
+- Verifikasi publik NYATA: Origin sah → 200 + ACAO tepat; tanpa Origin → 403;
+  /healthz publik → 403; http → 301.
+- browser-smoke FULL-PRODUKSI (Pages + api-be) VERDICT PASS: Solo loot→5 hit
+  100→0→kill feed→death overlay→respawn HP 100→exit leak-free (bus listeners
+  0); login akun persisten qa_persist_a (greeting + peringkat + map card);
+  Online 2-klien WSS (qa_persist_b vs _c) joined, enemy_markers 1, exit
+  kembali ke lobby. Regresi: unit 49/49, server 33/33.
+- Status akhir: forest-battleground + nginx + fb-backup.timer semuanya
+  active+enabled. Ketiga item Butuh Keputusan #1 terjawab oleh opsi (a).
 
 ## PENDING_MANUAL (butuh HP asli)
 
