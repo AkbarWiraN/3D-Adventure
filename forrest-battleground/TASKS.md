@@ -192,8 +192,19 @@ _(IN PROGRESS)_
   query leaderboard jalan di DB hasil restore. Disk 43 GB free (alarm <10 GB).
   CATATAN JUJUR: restore drill ke file TERPISAH, belum pernah restore di atas DB
   produksi (itu memang tidak boleh dilakukan sembarangan).
-- [ ] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
-  forged inventory/kill, koordinat negatif/NaN) — sebagian sudah di `realtime.test.js` (9/9)
+- [x] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
+  forged inventory/kill, koordinat negatif/NaN)
+  Bukti NYATA: `realtime.test.js` 10/10 PASS — test #10 baru menegaskan lewat SERVER NYATA:
+  input flood ke-21 ditolak `INPUT_FLOOD`; attack flood ke-51 ditolak `ATTACK_FLOOD`
+  (bow berammo, cooldown di-nolkan untuk mengisolasi); NaN/±Infinity di mx/mz/yaw
+  ditolak parser; |mx|/|mz|>1 → `INPUT_MOVE_RANGE`; forged `give`/`kill`/`die` →
+  `TYPE_UNKNOWN` + server tidak punya API `giveItem`/`setPosition`; forged `leave`
+  dengan sessionId orang lain DITOLAK (korban tetap di room, socket tidak tertutup);
+  frame binary non-UTF8 → `FRAME_NOT_JSON`; seq meloncat diterima tapi posisi tetap
+  dihitung server (mx/mz, tanpa teleport); input jalan 200 tick diapit
+  `clampToWorld` (tak bisa keluar peta). Refactor kecil: `MAX_ATTACK_PER_SEC`
+  dipindah ke `shared/constants.js` (sebelumnya hardcode 50 di room.js vs konstanta
+  tak terpakai di protocol.js) — satu sumber kebenaran.
 - [ ] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
 - [ ] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
 - [ ] [QA] Real laptop + HP portrait lintas jaringan: PvP 5 hit, leaderboard, exit/rejoin — PENDING_MANUAL

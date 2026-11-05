@@ -384,4 +384,102 @@ describe('Fase 3 — WSS authoritative', () => {
     await c.waitFor('leave_ack');
     c.close();
   });
+  test('10. anti-cheat lanjutan: flood, NaN, forged leave/kill, binary, seq meloncat', async () => {
+    const u = await makeUser('adv');
+    const c = new Client(wsBase); await c.ready();
+    c.send({ t: 'auth', token: u.token });
+    await c.waitFor('auth_ok');
+    c.send({ t: 'join', room: 'forest' });
+    const joined = await c.waitFor('joined');
+    assert.ok(joined);
+
+    const { getRealtime } = await import('../src/realtime/index.js');
+    const gw = getRealtime();
+    const p = [...gw.room.players.values()].find((x) => x.userId === u.userId);
+    assert.ok(p);
+    const { parseFrame } = await import('../src/realtime/protocol.js');
+
+    // a. input flood: 21 input sah dalam satu detik → yang ke-21 ditolak.
+    let rejected = null;
+    for (let i = 1; i <= 21; i++) {
+      const r = gw.room.applyInput(p.sessionId, { t: 'input', seq: 1000 + i, mx: 0, mz: 0, yaw: 0 });
+      if (!r.ok) { rejected = r; break; }
+    }
+    assert.equal(rejected?.code, 'INPUT_FLOOD', 'flood input tidak ditolak');
+
+    // b. attack flood: jendela 1 detik maks 50 → ke-51 ditolak ATTACK_FLOOD.
+    //    (pakai bow berammo supaya tidak berhenti di NO_AMMO; cooldown di-nolkan
+    //    untuk mengisolasi penghitung flood.)
+    p.inventory[0] = { type: 'bow', ammo: 999 };
+    let floodAtk = null;
+    for (let i = 0; i < 55; i++) {
+      p.cooldownUntil = 0;
+      const r = gw.room.attack(p.sessionId);
+      if (!r.ok && r.code === 'ATTACK_FLOOD') { floodAtk = r; break; }
+    }
+    assert.ok(floodAtk, 'flood attack tidak ditolak');
+    p.inventory[0] = null;
+
+    // c. NaN/Infinity di field numerik protokol → ditolak parser.
+    for (const bad of [NaN, Infinity, -Infinity]) {
+      const r = parseFrame(Buffer.from(JSON.stringify({ t: 'input', seq: 1, mx: bad, mz: 0, yaw: 0 })));
+      assert.equal(r.ok, false, `mx=${bad} lolos parser`);
+      const r2 = parseFrame(Buffer.from(JSON.stringify({ t: 'input', seq: 1, mx: 0, mz: 0, yaw: bad })));
+      assert.equal(r2.ok, false, `yaw=${bad} lolos parser`);
+    }
+
+    // d. |mx|>1 / |mz|>1 (speed hack via vektor besar) → INPUT_MOVE_RANGE.
+    assert.equal(parseFrame(Buffer.from(JSON.stringify({ t: 'input', seq: 1, mx: 5, mz: 0, yaw: 0 }))).code, 'INPUT_MOVE_RANGE');
+    assert.equal(parseFrame(Buffer.from(JSON.stringify({ t: 'input', seq: 1, mx: 0, mz: -2, yaw: 0 }))).code, 'INPUT_MOVE_RANGE');
+
+    // e. forged inventory: protokol tidak punya pesan set-inventory; satu-satunya
+    //    jalan punya item adalah pickup dari tanah (server-side).
+    assert.equal(parseFrame(Buffer.from(JSON.stringify({ t: 'give', item: 'bow' }))).code, 'TYPE_UNKNOWN');
+    assert.equal(typeof gw.room.giveItem, 'undefined', 'server tidak boleh punya API giveItem');
+    assert.equal(p.inventory.every((x) => x === null), true, 'inventaris berubah tanpa pickup');
+
+    // f. forged kill/death: tidak ada tipe pesannya; HP hanya berubah lewat attack.
+    assert.equal(parseFrame(Buffer.from(JSON.stringify({ t: 'kill', target: 'x' }))).code, 'TYPE_UNKNOWN');
+    assert.equal(parseFrame(Buffer.from(JSON.stringify({ t: 'die' }))).code, 'TYPE_UNKNOWN');
+
+    // g. forged leave: sessionId orang lain ditolak (scoped ke pemilik socket).
+    const u2 = await makeUser('adv2');
+    const c2 = new Client(wsBase); await c2.ready();
+    c2.send({ t: 'auth', token: u2.token });
+    await c2.waitFor('auth_ok');
+    c2.send({ t: 'join', room: 'forest' });
+    const j2 = await c2.waitFor('joined');
+    // c (bukan pemilik j2.sessionId) mencoba mengeluarkan c2.
+    c.send({ t: 'leave', sessionId: j2.sessionId });
+    await wait(300);
+    assert.ok(gw.room.players.has(j2.sessionId), 'pemain lain terkeluarkan oleh forged leave');
+    assert.equal(c2.closed, null, 'socket korban tertutup oleh forged leave');
+
+    // h. frame binary (bukan UTF-8 JSON) → FRAME_NOT_JSON.
+    assert.equal(parseFrame(Buffer.from([0x00, 0x9f, 0x92, 0x96])).code, 'FRAME_NOT_JSON');
+
+    // i. seq meloncat jauh: protokol menerima (gap boleh — packet loss), tapi
+    //    tidak memberi keuntungan: posisi tetap dihitung server dari mx/mz.
+    //    (reset jendela flood dari langkah (a) — mengisolasi perilaku seq.)
+    p.inputWindow = { at: 0, n: 0 };
+    const before = { x: p.x, z: p.z };
+    const rJump = gw.room.applyInput(p.sessionId, { t: 'input', seq: 999999, mx: 0, mz: 0, yaw: 0 });
+    assert.equal(rJump.ok, true, `seq meloncat ditolak: ${JSON.stringify(rJump)}`);
+    assert.equal(p.x, before.x, 'seq meloncat menggerakkan posisi');
+    assert.equal(p.z, before.z);
+
+    // j. koordinat negatif/di luar peta lewat input: resolveMove+clampToWorld
+    //    menahan di dalam batas dunia (diuji di test #5 & unit world).
+    const { WORLD } = await import('../../src/shared/constants.js');
+    gw.room.applyInput(p.sessionId, { t: 'input', seq: 1000000, mx: -1, mz: -1, yaw: Math.PI / 4 });
+    for (let i = 0; i < 200; i++) gw.room.step(0.05);
+    assert.ok(Math.abs(p.x) <= WORLD.SIZE / 2 + 0.01 && Math.abs(p.z) <= WORLD.SIZE / 2 + 0.01,
+      `pemain keluar peta: ${p.x},${p.z}`);
+
+    c.send({ t: 'leave', sessionId: p.sessionId });
+    await c.waitFor('leave_ack');
+    c2.send({ t: 'leave', sessionId: j2.sessionId });
+    await c2.waitFor('leave_ack');
+    c.close(); c2.close();
+  });
 });
