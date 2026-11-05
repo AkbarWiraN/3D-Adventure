@@ -219,7 +219,21 @@ _(IN PROGRESS)_
   - logrotate.timer aktif harian; nginx rotate 14 hari. Log fb via journald;
     journal 777.5 MB di-vacuum ke 394.8 MB + `SystemMaxUse=400M`,
     `MaxRetentionSec=2week` di-set permanen (sebelumnya unlimited — risiko disk penuh).
-- [ ] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
+- [~] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
+  Bukti NYATA (5 Nov 2026): workflow Pages run 2660f4a SUCCESS; asset teruji
+  dari internet: `/forrest-battleground/` 200 (12.2 KB), `src/main.js` 200,
+  `style.css` 200, `vendor/three.module.js` 200 (603 KB). Semua import relatif
+  (`./src/main.js` dst) — path relatif benar di subpath Pages.
+  browser-smoke FULL-PRODUKSI (Pages + api-be.bssn.biz.id): Solo lengkap PASS
+  (loot→5 hit→death→respawn→exit leak-free), register/login PRODUKSI PASS
+  (akun QA nyata, greeting lobby, map card "pemain 1/8").
+  BUG NYATA DIPERBAIKI di test: dynamic import `'/src/...'` (absolut) keluar
+  dari subpath Pages → `https://akbarwiran.github.io/src/...` 404; diganti
+  `new URL('src/...', location.href)`. Origin fetch backend juga di-generalisasi
+  dari hardcode loopback → `new URL(FRONT).origin`.
+  SISA: Fase C online 2-klien tertahan rate limit register produksi (429,
+  retry-after 659 dtk — perilaku keamanan BENAR, kuota habis oleh run QA).
+  Menunggu jendela 15 menit untuk lari ulang Fase C → kemudian [x].
 - [ ] [QA] Real laptop + HP portrait lintas jaringan: PvP 5 hit, leaderboard, exit/rejoin — PENDING_MANUAL
 
 ---

@@ -70,7 +70,7 @@ async function main() {
   R.titleVisible = await ev(`!document.getElementById('screen-title').classList.contains('hidden')`);
   await ev(`document.getElementById('btn-solo').click()`);
   await sleep(4500);
-  await ev(`(async()=>{const m=await import('/src/shared/world.js');window.__fbWorld=m.getWorld();return 1})()`);
+  await ev(`(async()=>{const m=await import(new URL('src/shared/world.js', location.href).href);window.__fbWorld=m.getWorld();return 1})()`);
   R.hudVisible = await ev(`!document.getElementById('hud').classList.contains('hidden')`);
   R.hp = await ev(`document.getElementById('hp-text').textContent`);
   R.metrics = await ev(`window.__fb.metrics()`);
@@ -124,7 +124,7 @@ async function main() {
   await ev(`window.__fb.exitSolo()`);
   await sleep(800);
   R.exit = await ev(`({session:window.__fb.getSession()===null,title:!document.getElementById('screen-title').classList.contains('hidden')||!document.getElementById('screen-lobby').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden'),listeners:(async()=>0)()})`);
-  R.busListeners = await ev(`(async()=>{const m=await import('/src/core/bus.js');return ['input:attack','input:look','ui:toggleMap'].map(e=>e+':'+m.countListeners(e))})()`);
+  R.busListeners = await ev(`(async()=>{const m=await import(new URL('src/core/bus.js', location.href).href);return ['input:attack','input:look','ui:toggleMap'].map(e=>e+':'+m.countListeners(e))})()`);
   R.sceneChildren = await ev(`window.__fb.getSession()===null?'n/a':0`);
 
   // ---------- Fase B: register/login backend nyata ----------
@@ -168,14 +168,14 @@ async function main() {
   if (BACKEND) {
     const userC = 'qa_' + Math.random().toString(36).slice(2, 8);
     const login = await fetch(`${BACKEND}/api/v1/auth/login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
       body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123' }),
     });
     let tok = null;
     if (login.status === 200) tok = (await login.json()).token;
     if (!tok) {
       const reg = await fetch(`${BACKEND}/api/v1/auth/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
         body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123', character: 'female' }),
       });
       if (reg.status === 201) tok = (await reg.json()).token;
@@ -188,13 +188,13 @@ async function main() {
     {
       const foeUser = 'qa_foe_' + Math.random().toString(36).slice(2, 8);
       const r = await fetch(`${BACKEND}/api/v1/auth/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
         body: JSON.stringify({ username: foeUser, password: 'kata-sandi-qa-123', character: 'male' }),
       });
       if (r.status === 201) foeTok = (await r.json()).token;
       else {
         const l = await fetch(`${BACKEND}/api/v1/auth/login`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:8099' },
+          method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
           body: JSON.stringify({ username: foeUser, password: 'kata-sandi-qa-123' }),
         });
         if (l.status === 200) foeTok = (await l.json()).token;
@@ -204,7 +204,7 @@ async function main() {
 
     if (tok && foeTok) {
       // Lawan: satu WSS nyata (protokol klien sungguhan, bukan mock).
-      const foe = new WebSocket(`${BACKEND.replace('http', 'ws')}/ws`, { headers: { Origin: 'http://127.0.0.1:8099' } });
+      const foe = new WebSocket(`${BACKEND.replace('http', 'ws')}/ws`, { headers: { Origin: new URL(FRONT).origin } });
       const foeInbox = [];
       foe.on('message', (raw) => { try { foeInbox.push(JSON.parse(raw.toString())); } catch { /* abaikan */ } });
       await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('foe open timeout')), 8000); foe.once('open', () => { clearTimeout(t); res(); }); foe.once('error', (e) => { clearTimeout(t); rej(e); }); });
