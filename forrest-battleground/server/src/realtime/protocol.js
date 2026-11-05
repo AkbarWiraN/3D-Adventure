@@ -1,12 +1,12 @@
 // realtime/protocol.js — protokol v1: validasi frame KETAT, satu sumber kebenaran.
 // prompt.md Fase 3 butir 2: schema strict, max frame 16 KiB, seq anti-replay.
 // PURE (tanpa I/O) supaya bisa diuji tanpa server.
-import { PROTOCOL_VERSION, WEAPONS } from '../../../src/shared/constants.js';
+import { PROTOCOL_VERSION, WEAPONS, NETWORK } from '../../../src/shared/constants.js';
 
 export const MAX_FRAME_BYTES = 16 * 1024;
 export const AUTH_TIMEOUT_MS = 5000;
-export const MAX_INPUT_PER_SEC = 20;
-export const MAX_ATTACK_PER_SEC = 50;
+export const MAX_INPUT_PER_SEC = NETWORK.MAX_INPUT_PER_SEC;
+export const MAX_ATTACK_PER_SEC = NETWORK.MAX_ATTACK_PER_SEC;
 
 const C2S = new Set(['auth', 'join', 'input', 'action', 'leave', 'ping']);
 const ACTION_KINDS = new Set(['attack', 'pickup', 'drop', 'throw', 'slot']);

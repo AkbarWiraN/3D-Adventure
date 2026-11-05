@@ -222,7 +222,7 @@ export class Room {
     const w = p.attackWindow;
     const t = now();
     if (t - w.at > 1000) { w.at = t; w.n = 0; }
-    if (++w.n > 50) return { ok: false, code: 'ATTACK_FLOOD' };
+    if (++w.n > NETWORK.MAX_ATTACK_PER_SEC) return { ok: false, code: 'ATTACK_FLOOD' };
 
     const held = p.inventory[p.slot];
     const weaponId = held ? (held.type === 'arrows' ? 'unarmed' : held.type) : 'unarmed';

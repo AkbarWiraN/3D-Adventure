@@ -317,3 +317,39 @@ SUITE LENGKIH (semua dijalankan nyata):
 
 CATATAN JUJUR: FPS headless SwiftShader (4-5) BUKAN metrik perangkat.
 PENDING_MANUAL tetap: HP asli, multitouch, notch, PvP lintas jaringan.
+
+=== 5 Nov 2026 (sore) — REQUEST PEMILIK: mobile LANDSCAPE + lobby bertab ===
+
+PERUBAHAN PERMINTAAN: prompt.md §3.2 mobile portrait → LANDSCAPE (semua 18
+referensi "portrait" di prompt.md diubah; rotate-hint dibalik: portrait =
+"miringkan perangkat", landscape = bebas main).
+
+LOBBY BARU (screen-lobby): setelah login, layar dengan header tab —
+Beranda / Karakter / Map / Leaderboard / Pengaturan Akun.
+- Beranda: greeting + Main Solo/Online + catatan room.
+- Karakter: 2 kartu (Laki-laki/Perempuan), klik → PATCH /users/me.
+- Map: kartu Forest dengan onlineCount/hardCap dari GET /maps.
+- Leaderboard: top 10 + rank sendiri (kills/deaths/KDR).
+- Pengaturan Akun: info akun + tombol Pengaturan Game + Keluar Akun.
+- Keluar dari game (Solo/Online) kembali ke lobby bila login, judul bila tamu.
+
+AUTH LEBIH BAGUS: tab Masuk/Daftar (toggle), karakter hanya di mode Daftar,
+Enter di password = submit, tombol "Keluar Akun" di judul saat sudah login.
+
+FILE: index.html, style.css (+auth-tab/lobby-tab/char-card/lb-list),
+src/ui/lobby.js (tulis ulang, pola tab), src/ui/screens.js (+screen lobby,
+back()→lobby), src/main.js (boot login→lobby, exitSolo→lobby, 2 tombol
+online), src/config.js (isMobilePortrait→isMobileLandscape).
+
+TEST DISESUAIKAN: browser-smoke (tab daftar, lobby-greeting, btn-lobby-online,
+exit→lobby), online-smoke (idem), mobile-emu-check (844x390 landscape +
+assert rotate-hint muncul di portrait & hilang di landscape).
+
+HASIL NYATA:
+  unit 49/49 · auth+http+security 23/23 · realtime 9/9
+  mobile-emu-check VERDICT PASS (joystick+multitouch+orientasi)
+  browser-smoke VERDICT PASS (register→lobby→online→exit→lobby)
+  online-smoke VERDICT PASS (PvP nyata 2 klien)
+  Screenshot UI diverifikasi visual (judul/login, lobby 5 tab, rotate-hint).
+
+PENDING_MANUAL tetap: HP asli landscape di jaringan berbeda.

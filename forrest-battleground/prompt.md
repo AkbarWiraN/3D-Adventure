@@ -2,7 +2,7 @@
 
 **Versi spesifikasi:** 2.0 — 4 November 2026 (revisi: VPS 2 vCPU/4 GB/50 GB, backend sejak Fase 1, leaderboard, leave, origin allowlist)  
 **Bahasa UI:** Indonesia (natural dan ringkas)  
-**Target:** browser desktop dan mobile; desktop boleh landscape, **mobile wajib portrait**  
+**Target:** browser desktop dan mobile; desktop boleh portrait, **mobile wajib landscape** (permintaan pemilik 5 Nov 2026, menggantikan aturan portrait)  
 **Model pengembangan:** empat fase vertikal frontend + backend dari awal; solo playable sebelum PvP diaktifkan  
 **Deployment:** frontend statis khusus `https://akbarwiran.github.io/` (GitHub Pages); backend satu VPS Tencent Cloud: **2 vCPU, RAM 4 GB, SSD 50 GB**, HTTPS/WSS via domain TLS  
 **Sumber pembelajaran:** GHOSTDASH (`https://github.com/AkbarWiraN/3D-Adventure/tree/main/ghostdash`) sebagai referensi teknik Three.js, bukan kode yang harus disalin mentah.
@@ -31,7 +31,7 @@ Anda berperan sebagai **lead gameplay engineer, Three.js/WebGL engineer, realtim
 
 ### Prioritas hasil akhir — kedua sisi berkembang bersama
 
-- **Fase 1 — pondasi frontend + backend:** render hutan 1024 m, kontrol desktop/HP portrait, minimap, Solo eksplorasi; **server Fastify aktif dengan `/health`, `/api/v1/config/public`, SQLite schema awal, CORS/Origin allowlist, deployment dev + test**.
+- **Fase 1 — pondasi frontend + backend:** render hutan 1024 m, kontrol desktop/HP landscape, minimap, Solo eksplorasi; **server Fastify aktif dengan `/health`, `/api/v1/config/public`, SQLite schema awal, CORS/Origin allowlist, deployment dev + test**.
 - **Fase 2 — gameplay Solo + API akun/lobby:** combat/loot/bot/death/respawn Solo; **register/login/profil/karakter, map status, leaderboard (awalnya kosong), settings backend endpoint, integrasi autentikasi dan lobby**.
 - **Fase 3 — multiplayer realtime dua device:** **server authoritative WSS** mengelola movement, combat, loot, spawn, death, respawn, **leave/rejoin**, kill feed, presence dan update kills/deaths ke leaderboard transaksi SQLite. UI frontend mengaktifkan Online dari GitHub Pages.
 - **Fase 4 — security hardening, optimasi resource dan rilis:** audit CORS + WS Origin, anticheat, load test bertahap, deployment **VPS Tencent + HTTPS/WSS + GitHub Pages**, backup/monitoring/QA laptop–HP; handoff final.
@@ -56,7 +56,7 @@ Anda berperan sebagai **lead gameplay engineer, Three.js/WebGL engineer, realtim
 ### 1.1 User stories yang harus terpenuhi
 
 - **Player A — laptop:** buka web, registrasi/login, masuk lobby, pilih karakter laki-laki default dan map Forest, lihat jumlah pemain aktif **di dalam map**, klik Mulai, spawn acak, gerak WASD, gunakan mouse untuk kamera, loot pedang, lalu bisa menyerang Player B.
-- **Player B — HP portrait:** buka URL yang sama, registrasi/login, pilih karakter perempuan, masuk map Forest, spawn acak, gunakan joystick kiri dan drag kamera di area kanan, loot busur, tekan Aim/Scope untuk zoom dan crosshair, bidik A, lepaskan anak panah.
+- **Player B — HP landscape:** buka URL yang sama, registrasi/login, pilih karakter perempuan, masuk map Forest, spawn acak, gunakan joystick kiri dan drag kamera di area kanan, loot busur, tekan Aim/Scope untuk zoom dan crosshair, bidik A, lepaskan anak panah.
 - **Pertarungan:** masing-masing hit valid mengurangi **20 HP** tanpa bonus headshot atau armor; HP awal 100; dengan 5 hit valid dan tidak ada heal di antaranya, target mati. Muncul kill feed `usernameB dikalahkan oleh usernameA`. Korban bisa klik **Respawn** dan muncul di lokasi valid acak dengan HP 100, tangan kosong, lalu loot ulang.
 - **Loot:** senjata tampak sebagai objek dunia, bisa dipungut, disimpan, dipakai, dijatuhkan, serta **dilempar** sebagai tindakan berbeda. Pickup harus dekat dan valid; dua pemain tidak boleh berhasil mengambil loot yang sama.
 - **Minimap:** pojok kiri atas, posisi player sendiri, arah menghadap, landmark, dan marker lawan. Tekan minimap untuk fullscreen/overlay map yang dapat di-zoom, pan, dan ditutup. Musuh ditampilkan sebagai **ikon anonim**, tanpa nama/HP. **Keputusan MVP:** posisi pemain lain ditampilkan pada minimap online (sesuai permintaan), tetapi catat di risk log bahwa ini mengurangi stealth; buat kebijakan visibilitas configurable agar nanti mudah diubah ke enemy-proximity ping/reveal.
@@ -157,7 +157,7 @@ Single process + SQLite ≠ horizontal scale. Angka 8/16 pemain **bukan garansi*
 
 ```text
 PUBLIC INTERNET
-  Browser Laptop / Browser HP portrait
+  Browser Laptop / Browser HP landscape
   https://akbarwiran.github.io/<repo>/<path>/
       │  frontend statis whitelist: HTML/CSS/JS/vendor (NO server/.env)
       ├── HTTPS  REST register/login/profile/lobby/leaderboard/status
@@ -265,7 +265,7 @@ Source `src/shared/` harus berisi fungsi/konstanta PURE yang boleh diimpor backe
 
 - Third-person over-shoulder camera, gerak **camera-relative**, kamera follow dengan smoothing dan adjustable sensitivity. Tunjukkan badan pemain; saat Aim, kamera bergeser ke bahu dan zoom/FOV mengecil, crosshair/reticle terpusat.
 - Desktop: WASD/arrow untuk gerak, Shift sprint, Space jump, `Z` prone toggle, mouse untuk look/aim, klik kiri untuk attack, klik kanan **hold Aim**, `E` pickup/interact, `1`/`2` pilih senjata, `G` drop, `T` throw, `M` map, `Esc` pause/settings. Sediakan tooltip dan remapping mudah di kemudian hari.
-- Mobile **portrait wajib**: joystick virtual di **kiri bawah**, touch-look di kanan/tengah, tombol besar **SERANG**, **BIDIK** (hold/toggle opsional), **LONCAT**, **LARI**, **TIARAP**, **AMBIL** saat dekat loot, dan quick-slot `1/2` serta inventory panel untuk **JATUHKAN/LEMPAR**. Minimap di kiri atas; HUD jangan bertabrakan dengan tombol atau notch/safe area. Pertahankan multitouch (joystick + aim + attack simultan).
+- Mobile **landscape wajib** (portrait memunculkan rotate-hint): joystick virtual di **kiri bawah**, touch-look di kanan/tengah, tombol besar **SERANG**, **BIDIK** (hold/toggle opsional), **LONCAT**, **LARI**, **TIARAP**, **AMBIL** saat dekat loot, dan quick-slot `1/2` serta inventory panel untuk **JATUHKAN/LEMPAR**. Minimap di kiri atas; HUD jangan bertabrakan dengan tombol atau notch/safe area. Pertahankan multitouch (joystick + aim + attack simultan).
 - Bow: ada tombol **scope/zoom** terpisah atau ikon crosshair di dekat SERANG; saat aktif, FOV mengecil dari contoh 65° menjadi 40°, reticle menampilkan titik hit di tengah; jangan auto-aim ekstrem. Saat menembak, UI tunjukkan hit marker hanya setelah server mengonfirmasi hit pada PvP.
 - Sprint tidak bisa dilakukan dalam prone; jump tidak boleh saat tiarap; input di-blok saat mati, pause (solo), atau layar modal utama. Kamera tidak boleh melompat saat joystick dilepas atau jari keluar area kontrol.
 - Collision + movement harus stabil: tidak menembus rumah/batu/pohon, tidak tersangkut tepi collider, tidak berlari diagonal lebih cepat, tidak bisa melompati batas dunia dengan glitch.
@@ -293,7 +293,7 @@ Source `src/shared/` harus berisi fungsi/konstanta PURE yang boleh diimpor backe
 
 ### 3.5 Minimap dan peta penuh
 
-- Minimap **pojok kiri atas**, orientasi utara tetap (north-up), ukuran adaptif: kira-kira 100–140 px desktop dan 85–110 px HP portrait, dengan hit target cukup besar untuk disentuh.
+- Minimap **pojok kiri atas**, orientasi utara tetap (north-up), ukuran adaptif: kira-kira 100–140 px desktop dan 85–110 px HP landscape, dengan hit target cukup besar untuk disentuh.
 - Peta menunjukkan batas dunia, jalur utama/POI, bangunan, posisi pemain sendiri, arah facing, dan marker pemain lain (ikon anonim). Dalam solo tampilkan bot sebagai marker musuh. Jangan gunakan Google Maps atau API peta eksternal.
 - Klik/tap membuka overlay map fullscreen atau hampir fullscreen; zoom in/out, pan, reset centering dan tombol tutup. Mouse wheel di desktop dan pinch zoom di mobile; game solo pause saat peta dibuka, sedangkan multiplayer **tidak boleh menghentikan simulasi server** ketika pemain membuka peta (input gerak lokal dapat dibatasi selama overlay).
 - **PvP MVP:** posisi lawan tampil di map tanpa identitas/nama, sesuai kebutuhan awal. Atur melalui `MAP_ENEMY_VISIBILITY=all`; desain agar bisa berubah ke `nearby`/`recently_seen` tanpa mengubah protokol dasar. Dokumentasikan konsekuensi stealth: musuh bisa dilacak via map sehingga tak benar-benar tersembunyi.
@@ -475,7 +475,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 
 ### 5.1 Performance budget awal (klien DAN VPS)
 
-- **Frontend:** target desktop 60 FPS dan mobile 30 FPS stabil (target, bukan klaim). Map 1 km², chunk 64 m, ring radius 2 yang disesuaikan perangkat, InstancedMesh grass/trees/rocks, LOD, material reuse, frustum + distance culling, shadow tier, pixel ratio adaptif. Mobile portrait tidak merender seluruh peta.
+- **Frontend:** target desktop 60 FPS dan mobile 30 FPS stabil (target, bukan klaim). Map 1 km², chunk 64 m, ring radius 2 yang disesuaikan perangkat, InstancedMesh grass/trees/rocks, LOD, material reuse, frustum + distance culling, shadow tier, pixel ratio adaptif. Mobile landscape tidak merender seluruh peta.
 - **HUD:** tidak rebuild DOM/minimap/markers tiap frame; diff updates dan throttle minimap 5–10 Hz, minimap enemy network 1–2 Hz; texture.needsUpdate hanya pada konten berubah. Semua geometries/materials/textures serta listeners dibersihkan saat exit/rejoin.
 - **Game server:** 20Hz authoritative room, 10Hz AoI snapshot, maksimum 20 input/s/client, cap awal 8, CPU total <70% saat load test 8 client ideal, tick p95 <50ms, event loop lag dicatat. Jika tidak memenuhi, kurangi cap dan sampling rate sebelum menambah layanan.
 - **RAM VPS:** aplikasi Node ideal ≤350–600MB RSS saat simulasi 8 client (target profiling), pertahankan headroom sistem >=1 GB; Nginx, OS, disk cache dan SQLite tetap dihitung. Jangan gunakan database write setiap tick. Kontrol max WebSocket buffered bytes dan jumlah koneksi.
@@ -499,7 +499,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 - Unit pure rules: seeded world, spawn candidate validity, normalized movement, sprint/prone/jump, collider boundary, range/LOS, 5 hits exact, cooldown, inventory slot, drop ≠ throw, leaderboard sorting and KDR, no double-count elimination.
 - Backend HTTP integration: register/login/duplicate username, wrong password/rate-limit, character save, maps/status, leaderboard top10 + self, wrong token, wrong user, CORS preflight exact, foreign Origin, missing/null Origin. Gunakan HTTP server real untuk validasi header browser.
 - Backend WS integration: handshake Origin allow/deny, token auth, join/presence, movement/snapshot, attack 20 HP, 5 hits death + event, duplicate action, loot race, leave/leave_ack, idempotent cleanup, combat logout, reconnect/timeout, malformed frame.
-- E2E: browser desktop + emulated portrait (Playwright bila tersedia), lalu **real HP** di jaringan berbeda; solo playable offline, login/lobby leaderboard, PvP, exit dari normal/death/map, login ulang, leaderboard persisted.
+- E2E: browser desktop + emulated landscape (Playwright bila tersedia), lalu **real HP** di jaringan berbeda; solo playable offline, login/lobby leaderboard, PvP, exit dari normal/death/map, login ulang, leaderboard persisted.
 - Load: staged 2/4/8 simulated clients, cpu/RSS/latency/tick drift/bandwidth; jangan menguji 1000 dummy connections di server produksi tanpa safety caps. Jika alat tidak tersedia, `PENDING_MANUAL` dan langkah uji konkret.
 
 
@@ -509,7 +509,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 
 ## FASE 1 — ENGINE HUTAN + KONTROL + BACKEND SKELETON DAN KEAMANAN ORIGIN
 
-**Instruksi penuh:** Siapkan satu monorepo ringan yang **langsung memuat frontend yang siap GitHub Pages** dan **server Fastify yang benar-benar berjalan di VPS**. Inventaris sistem sebelum menginstal paket: OS, Node, RAM/CPU/disk, service/port lama yang sudah dipakai; jangan mengubah firewall atau menghentikan service existing tanpa memastikan dampaknya. Bangun game world deterministic 1024×1024 m berbasis chunk, vegetasi low-poly instanced, rumah/gubuk dan batu, kontrol third-person desktop dan HP portrait, random spawn, minimap, map overlay, exit Solo. Pada sisi server, bangun REST hidup `/api/v1/health` dan `/api/v1/config/public`, bootstrap SQLite WAL + migration `users/player_stats/elimination_events`, schema validation, logging, CORS allowlist benar, internal `/healthz`. Buat test HTTP port nyata untuk Origin. Set backend bind loopback, config env yang jelas, dan script startup/migrate. Integrasi awal: UI settings memasukkan backend HTTPS/valid TLS dan Test Connection (untuk lokal dev backend bisa HTTP localhost); Solo tetap jalan tanpa server. Jangan mengerjakan login/combat full dulu. **Exit Fase 1:** frontend eksplorasi dan server API dasar benar-benar jalan bersama dan bisa dipanggil sesuai origin dev; repo build pages belum mengekspor `server/`.
+**Instruksi penuh:** Siapkan satu monorepo ringan yang **langsung memuat frontend yang siap GitHub Pages** dan **server Fastify yang benar-benar berjalan di VPS**. Inventaris sistem sebelum menginstal paket: OS, Node, RAM/CPU/disk, service/port lama yang sudah dipakai; jangan mengubah firewall atau menghentikan service existing tanpa memastikan dampaknya. Bangun game world deterministic 1024×1024 m berbasis chunk, vegetasi low-poly instanced, rumah/gubuk dan batu, kontrol third-person desktop dan HP landscape, random spawn, minimap, map overlay, exit Solo. Pada sisi server, bangun REST hidup `/api/v1/health` dan `/api/v1/config/public`, bootstrap SQLite WAL + migration `users/player_stats/elimination_events`, schema validation, logging, CORS allowlist benar, internal `/healthz`. Buat test HTTP port nyata untuk Origin. Set backend bind loopback, config env yang jelas, dan script startup/migrate. Integrasi awal: UI settings memasukkan backend HTTPS/valid TLS dan Test Connection (untuk lokal dev backend bisa HTTP localhost); Solo tetap jalan tanpa server. Jangan mengerjakan login/combat full dulu. **Exit Fase 1:** frontend eksplorasi dan server API dasar benar-benar jalan bersama dan bisa dipanggil sesuai origin dev; repo build pages belum mengekspor `server/`.
 
 ### Checklist Fase 1
 
@@ -521,7 +521,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 - [ ] [Frontend] Rumah/gubuk kosong yang dapat dimasuki ≥12 dan POI/ruins ≥8, colliders sesuai server metadata, loot hotspots disiapkan.
 - [ ] [Frontend] InstancedMesh + LOD/culling + material reuse + lifecycle disposer; monitor draw calls, textures, GPU resource trend.
 - [ ] [Frontend] Karakter laki-laki/perempuan cosmetic, animasi bergerak dan kamera third-person 360° smooth + camera collision.
-- [ ] [Frontend] WASD/mouse + sprint + jump + prone, mobile **portrait-only** joystick kiri/drag look kanan/multitouch/jump/run/prone; safe-area.
+- [ ] [Frontend] WASD/mouse + sprint + jump + prone, mobile **landscape-only** joystick kiri/drag look kanan/multitouch/jump/run/prone; safe-area.
 - [ ] [Frontend] Random spawn ≥40 kandidat valid, minimap kiri atas + map overlay zoom/pan + POI, keluar dari Solo ke Lobby kapan saja.
 - [ ] [Frontend] Settings backend URL/IP TLS, Test Connection, status+latency+warning custom URL; localstorage hanya nonsecret.
 - [ ] [Backend] Install Node.js **24 LTS** (jika belum tersedia/kompatibel), Fastify v5, @fastify/websocket, SQLite better-sqlite3, argon2, schema validator; tidak menambah DB server lain.
@@ -581,7 +581,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 - [ ] [Frontend] WS client auth/join flow setelah login; local prediction/reconciliation dan remote interpolation 100–150ms, character cosmetics sync, auth renewal UX.
 - [ ] [Backend] Server inventory 2 slot, loot spawn/expiry/pickup atomic/race, equip/drop/throw, ammo, respawn loot; event idempotence.
 - [ ] [Backend] Server validate fist 1.6m/sword 3m/bow 10m/throw 8m, LOS/cooldown/aim/owned weapon, exactly 20 HP/hit, no double-hit.
-- [ ] [Frontend] Online HUD HP/weapon/cooldown/killfeed/no floating opponent name/HP; bow scope zoom responsive di HP portrait.
+- [ ] [Frontend] Online HUD HP/weapon/cooldown/killfeed/no floating opponent name/HP; bow scope zoom responsive di HP landscape.
 - [ ] [Backend] Satu elimination event unique ID per death; SQLite transaction update kills dan deaths exactly-once, only PvP (solo bot excluded).
 - [ ] [Backend] `GET /leaderboard` rank/top10 memperlihatkan kills/deaths permanen lintas restart; invalidate cache setiap commit elimination.
 - [ ] [Backend] Death → weapon drop sekali → respawn delay 3s+protection 2s → random spawn HP100/tangan kosong, no spawn damage.
@@ -600,7 +600,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 
 ## FASE 4 — HARDENING, OPTIMISASI VPS, DEPLOY GITHUB PAGES + TENCENT, UJI AKHIR
 
-**Instruksi penuh:** Fase 4 bukan tempat menambah fitur kosmetik. Optimalkan dari hasil profiling, perketat origin/API/WS auth, test semua cheating/DoS yang realistis, buktikan performa pada resource VPS nyata, dan buat deployment yang dapat dipelihara. Audit layanan existing sebelum binding port, jangan expose SQLite/Node. Deploy satu service Node di systemd nonroot bind localhost, Nginx TLS reverse proxy dengan `Upgrade` WS, sertifikat otomatis diperbarui, backup SQLite online/WAL-safe, log rotation, memory/CPU/disk monitoring. Buat GitHub Pages deploy artifact **whitelist hanya frontend**; uji alamat path relatif. Konfigurasi `https://akbarwiran.github.io` sebagai satu-satunya allowed browser Origin di production untuk REST dan WS; pahami bahwa ini tidak memblokir program curl yang memalsukan Origin. Dengan laptop dan HP portrait pada jaringan terpisah, lakukan PvP 5 hit, leaderboard, exit kapan saja, rejoin, reconnect, serta 15 menit gameplay. Bila real phone tak tersedia, dokumentasikan `PENDING_MANUAL` dan jangan klaim selesai production. **Exit Fase 4:** deploy operasional + test report faktual + instruksi pemulihan.
+**Instruksi penuh:** Fase 4 bukan tempat menambah fitur kosmetik. Optimalkan dari hasil profiling, perketat origin/API/WS auth, test semua cheating/DoS yang realistis, buktikan performa pada resource VPS nyata, dan buat deployment yang dapat dipelihara. Audit layanan existing sebelum binding port, jangan expose SQLite/Node. Deploy satu service Node di systemd nonroot bind localhost, Nginx TLS reverse proxy dengan `Upgrade` WS, sertifikat otomatis diperbarui, backup SQLite online/WAL-safe, log rotation, memory/CPU/disk monitoring. Buat GitHub Pages deploy artifact **whitelist hanya frontend**; uji alamat path relatif. Konfigurasi `https://akbarwiran.github.io` sebagai satu-satunya allowed browser Origin di production untuk REST dan WS; pahami bahwa ini tidak memblokir program curl yang memalsukan Origin. Dengan laptop dan HP landscape pada jaringan terpisah, lakukan PvP 5 hit, leaderboard, exit kapan saja, rejoin, reconnect, serta 15 menit gameplay. Bila real phone tak tersedia, dokumentasikan `PENDING_MANUAL` dan jangan klaim selesai production. **Exit Fase 4:** deploy operasional + test report faktual + instruksi pemulihan.
 
 ### Checklist Fase 4
 
@@ -621,7 +621,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 - [ ] [Frontend] Build static `dist/` only; GitHub Actions deploy artifact `dist`, relative URL verified under real GitHub Pages repository path, no server/secret exported.
 - [ ] [Frontend] Backend Settings default official HTTPS domain, input validated, custom host warning, test connection, errors/latency; switch server forces logout/tears down WS.
 - [ ] [Frontend] Performance 15m chunk load/loot/respawn/exit/rejoin no DOM/GPU resource leaks; graphics Auto/Low etc.
-- [ ] [QA] Real laptop (desktop browser) + real HP portrait browser, different networks; auth/lobby/leaderboard/online count/character sync/loot/PvP 5 hit/death/respawn/exit/rejoin.
+- [ ] [QA] Real laptop (desktop browser) + real HP landscape browser, different networks; auth/lobby/leaderboard/online count/character sync/loot/PvP 5 hit/death/respawn/exit/rejoin.
 - [ ] [QA] Frontend HTTPS Pages + API WSS no mixed content, CORS misconfig, 401 leak, JS error; certificate verified.
 - [ ] [QA] Health check/register/login/leaderboard protected endpoint scripted smoke; rollback procedure and `systemctl` diagnostics.
 - [ ] [QA] Complete final acceptance table AT-01..; mark `PENDING_MANUAL` honestly if device/VPS/browser unavailable, report benchmark measurements.
@@ -636,7 +636,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 |---|---|---|
 | AT-01 | Solo tanpa backend | Dunia hutan, player, minimap, kamera, kontrol tetap berjalan |
 | AT-02 | Desktop | WASD, mouse 360°, run, prone, jump, collision, exit Solo |
-| AT-03 | Mobile portrait | Wajib portrait, joystick kiri+look kanan, hold aim + fire multitouch, safe area |
+| AT-03 | Mobile landscape | Wajib landscape (portrait → rotate-hint), joystick kiri+look kanan, hold aim + fire multitouch, safe area |
 | AT-04 | Large world | Perjalanan banyak chunk, pohon/rumput/batu/rumah, tidak ada leak/perf cliff |
 | AT-05 | Random spawn | Minimal 10 kali spawn variasi, collider/boundary aman |
 | AT-06 | Loot/drop/throw | Sword/bow/ammo, dua slot, pick/drop/re-pick/throw, no duplicate pickup |
@@ -664,7 +664,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 | AT-28 | Storage | WAL-safe SQLite backup+restore, log rotation, free disk headroom |
 | AT-29 | GitHub Pages | `dist` hanya assets frontend, path relatif bekerja, tidak ada backend/secret terpublish |
 | AT-30 | Tencent public deployment | Nginx HTTPS/WSS API, TLS valid, Node loopback, only intended ports open |
-| AT-31 | End-to-end real devices | Laptop+HP portrait berbeda jaringan; combat+kill+leaderboard+exit+rejoin works |
+| AT-31 | End-to-end real devices | Laptop+HP landscape berbeda jaringan; combat+kill+leaderboard+exit+rejoin works |
 | AT-32 | Long gameplay | 15 min forest combat+loot+exit/rejoin tanpa peningkatan GPU/server resources tak berbatas |
 
 **Status test:** `PASS` hanya bila teruji nyata, `FAIL`, `BLOCKED`, atau `PENDING_MANUAL` bila perangkat/tool tidak tersedia. Jangan menyatakan semua selesai hanya karena unit tests pass.
@@ -726,7 +726,7 @@ COMBAT_LOGOUT_SECONDS=10
 3. Nginx `443 ssl` → upstream `http://127.0.0.1:3000`; WS `Upgrade` dan connection handling dengan timeout masuk akal. Public firewall hanya 443 (+80 redirect/ACME), SSH admin key/IP terbatas; **jangan membuka Node 3000 atau DB port publik**.
 4. Node Fastify proses tunggal sebagai systemd nonroot dengan env 0600, restart policy, graceful shutdown; SQLite database di `/var/lib/forest-battleground` owner service, backup `WAL-safe` via job terjadwal, restore tested, logs rotated.
 5. Jalankan test real CORS di domain publik: Origin allowed yields ACAO; evil/null/missing denied. Jalankan WS handshake allowed vs forbidden. Uji spoofed Origin dan valid auth requirement; pahami ketidakmampuan CORS memblokir curl yang forged.
-6. Uji dua akun dari laptop dan HP portrait, beda jaringan, kill/feed/score, leave/ack, login ulang, respawn. Stress uji 2,4,8 dan catat metrik; rollback jika terlalu berat.
+6. Uji dua akun dari laptop dan HP landscape, beda jaringan, kill/feed/score, leave/ack, login ulang, respawn. Stress uji 2,4,8 dan catat metrik; rollback jika terlalu berat.
 7. Tuliskan playbook: `systemctl status`, `journalctl -u ...`, Nginx config test, cert renewal, backup+restore, migration, git rollback, dan cara melihat jumlah connected sessions dengan endpoint metrics **internal-only**.
 
 ### 8.4 Trade-off produk/keamanan
@@ -784,7 +784,7 @@ tertulis `[x]` di TASKS.md tanpa memenuhi isi spesifik butir checklist. Itu pela
 | D-004 | SQLite WAL + better-sqlite3; no Redis/Postgres | Satu VPS 2core/4GB, persistence hanya user/rank, minim operasional |
 | D-005 | 1 authoritative Forest room, 20 Hz server, 10Hz AoI snapshot | Hemat CPU/bandwidth dan mencegah client cheating |
 | D-006 | Map 1024×1024 m = 1.048.576 m², chunk 64m | Luas dunia sesuai kebutuhan, chunking wajib agar ringan |
-| D-007 | Mobile portrait-only; desktop flexible | UX sesuai perangkat |
+| D-007 | Mobile landscape-only; desktop flexible | UX sesuai perangkat (diminta pemilik 5 Nov 2026) |
 | D-008 | HP100, semua hit20, sword3m/bow10m | Tepat 5 hit valid = death |
 | D-009 | Leaderboard PvP server kills/deaths/KDR, stable sort | Tidak bisa diubah lewat frontend/REST user |
 | D-010 | Exit kapan saja, leave scoped, combat logout 10s | UX dan mitigasi exploit |
@@ -800,7 +800,7 @@ tertulis `[x]` di TASKS.md tanpa memenuhi isi spesifik butir checklist. Itu pela
 | HIGH | VPS kehabisan 2vCPU/4GB saat load/Argon2/WS | Cap awal8, rate limit auth concurrency, profiling tick, AoI, no DB writes/tick; BELUM DIUJI |
 | HIGH | Frontend statis membocorkan file server/secret | Build whitelist dist-only + test artifact; BELUM DIUJI |
 | HIGH | Ilusi 'API hanya dari GitHub Pages' | Origin browser-only, spoof test, JWT+authoritative rules; LIMITASI DESAIN |
-| HIGH | Mobile portrait FPS drop di vegetasi padat | Instancing/chunk/LOD/adaptive pixel ratio; BELUM DIUJI |
+| HIGH | Mobile landscape FPS drop di vegetasi padat | Instancing/chunk/LOD/adaptive pixel ratio; BELUM DIUJI |
 | HIGH | Double kill/death saat reconnect atau duplicate event | Unique event ledger + SQLite transaction; BELUM DIUJI |
 | HIGH | Endpoint custom mengarah phishing server | Default resmi dan explicit warning sebelum login; BELUM DIUJI |
 | MED | Enemy always visible di minimap mengurangi stealth | AoI movement + 1–2Hz coarse enemy map, configurable visibility; RISIKO DITERIMA |
