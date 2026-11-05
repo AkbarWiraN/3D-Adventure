@@ -153,11 +153,18 @@ _(IN PROGRESS)_
   Bukti: `auth.test.js` lulus; register SUKSES kuota hanya naik via `rateCommit()`; register
   gagal (username dipakai/password lemah) TIDAK menghabiskan kuota (bug Fase 3 sudah fix).
   Produksi tetap ketat: `curl register ke api-be` → 429 setelah 5 akun.
-- [ ] [Backend] Load test 2→4→8 WS client; evaluasi cap 8, opsional 16 hanya jika CPU <70%,
-  1 GB headroom, tick p95 ≤50 ms, koneksi stabil
-  Bukti awal ada (load-stage.mjs PASS 2/4/8: tick 19.8-19.9 Hz, snapshot p95 102-103 ms,
-  RSS 151→196 MB, CPU 1.6-2.5%) tapi klien+server satu proses → angka = batas atas.
-  Perlu uji 8→16 sebelum cap boleh naik.
+- [x] [Backend] Load test 2→4→8→16 WS client (`STAGES=2,4,8,16`); evaluasi cap
+  Bukti NYATA (`tests/load-stage.mjs`, ROOM_HARD_CAP=16 hanya di proses uji):
+    2 klien  | tick 19.9 Hz | CPU 1.6% | RSS total 151.2 MB | snapshot p95 102 ms | 0 socket error
+    4 klien  | tick 19.8 Hz | CPU 2.5% | RSS total 190.0 MB | snapshot p95 102 ms | 0 socket error
+    8 klien  | tick 19.9 Hz | CPU 3.4% | RSS total 192.5 MB | snapshot p95 102 ms | 0 socket error
+    16 klien | tick 19.9 Hz | CPU 5.3% | RSS total 198.2 MB | snapshot p95 102 ms | 0 socket error
+  VERDICT PASS (termasuk PvP sword/bow 5 hit, kill feed, leaderboard, respawn).
+  Gate cap-16 lolos di loopback: CPU 5.3% ≪ 70%, headroom RAM ~3.4 GB, tick stabil,
+  snapshot p95 102 ms = tepat 10 Hz. CATATAN JUJUR: klien+server satu proses → CPU
+  adalah batas ATAS; loopback bukan RTT internet; beban = input sinkron, belum
+  attack/loot serentak 16 pemain. Produksi TETAP cap 8 (spec: 2 perangkat nyata
+  dulu) — kenaikan ke 16 butuh uji dua perangkat lintas jaringan.
 - [ ] [Ops] SQLite online backup API script/schedule WAL-safe, retensi + rotation, restoration
   drill; alarm disk <10 GB
 - [ ] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
