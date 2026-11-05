@@ -474,6 +474,25 @@ _(IN PROGRESS)_
 - Regresi hijau run ini: unit 49/49, server suite 36/36, build:pages audit lolos.
 - Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
 
+### Catatan run 2026-11-05 (malam #11) — smoke produksi terskrip 14/14 PASS
+- Checklist tersisa hanya PENDING_MANUAL (HP asli); gap nyata yang ditutup run ini:
+  checklist Fase 4 [QA] "Health check/register/login/leaderboard protected endpoint
+  scripted smoke" belum punya script yang menyerang PRODUKSI nyata (semua suite
+  selama ini menyerang instance lokal/QA).
+- DIBUAT `server/tests/prod-smoke.mjs`: 14 langkah vs https://api-be.bssn.biz.id —
+  guard Origin (403 tanpa/evil), 401 tanpa JWT, register idempoten (hormat kuota
+  5/15m; 409 bila akun sudah ada), login JWT, users/me, leaderboard top10+me,
+  forest/status (online=0, hardCap=8), WS origin-deny (1008 ORIGIN_FORBIDDEN),
+  WS auth_ok, join room forest (joined, tick 20 Hz, snapshot), forged token 401,
+  logout revokasi jti (token lama → 401).
+- Hasil nyata: **14/14 PASS**. Aman produksi: maks 1 session WS (cap 8 tidak
+  tersentuh), akun QA persisten dipakai ulang, relogin pasca-logout terbukti OK,
+  service forest-battleground + nginx tetap active, restore-drill PASS (7 users).
+- Bug script yang ditemukan & diperbaiki saat kalibrasi: Content-Type json pada
+  POST logout tanpa body → Fastify 400 (bukan bug server; curl membuktikan
+  logout+revokasi bekerja).
+- Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader

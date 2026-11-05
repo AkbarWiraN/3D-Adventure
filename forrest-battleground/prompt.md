@@ -623,7 +623,7 @@ CREATE INDEX idx_stats_rank ON player_stats(kills DESC, deaths ASC);
 - [ ] [Frontend] Performance 15m chunk load/loot/respawn/exit/rejoin no DOM/GPU resource leaks; graphics Auto/Low etc.
 - [ ] [QA] Real laptop (desktop browser) + real HP landscape browser, different networks; auth/lobby/leaderboard/online count/character sync/loot/PvP 5 hit/death/respawn/exit/rejoin.
 - [ ] [QA] Frontend HTTPS Pages + API WSS no mixed content, CORS misconfig, 401 leak, JS error; certificate verified.
-- [ ] [QA] Health check/register/login/leaderboard protected endpoint scripted smoke; rollback procedure and `systemctl` diagnostics.
+- [x] [QA] Health check/register/login/leaderboard protected endpoint scripted smoke; rollback procedure and `systemctl` diagnostics. — `server/tests/prod-smoke.mjs` 14/14 PASS vs produksi nyata (run malam #11); rollback procedure terdokumentasi; systemd active+enabled.
 - [ ] [QA] Complete final acceptance table AT-01..; mark `PENDING_MANUAL` honestly if device/VPS/browser unavailable, report benchmark measurements.
 - [ ] [QA] README deploy local/production, install backend, DNS/TLS, GitHub Pages workflow, backups/restore/rollback, env examples, migration instructions, UI guide.
 - [ ] [QA] Update checklist, status, decision/risk logs, handoff; do not claim successful production deployment without live verification.
