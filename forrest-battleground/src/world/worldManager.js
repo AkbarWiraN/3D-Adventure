@@ -98,11 +98,16 @@ export class WorldManager {
     }
     this.stats.loaded = this.chunks.size;
 
-    // Antri yang baru.
-    this.pending = [];
+    // Antri yang baru. Chunk yang SEPENUHNYA di luar peta (origin bergeser
+    // -512..+512 -> koordinat dunia [cx*64, cx*64+64]) dilewati: tanpa filter
+    // ini spawn di dekat tepi membangun hingga 4 chunk kosong di luar dunia
+    // (jumlah plane terrain jadi tergantung posisi spawn acak — flake test leak).
+    const LIM = WORLD.HALF; // 512
     for (const k of want) {
       if (this.chunks.has(k)) continue;
       const [px, pz] = k.split(',').map(Number);
+      if (px * WORLD.CHUNK_SIZE >= LIM || (px + 1) * WORLD.CHUNK_SIZE <= -LIM ||
+          pz * WORLD.CHUNK_SIZE >= LIM || (pz + 1) * WORLD.CHUNK_SIZE <= -LIM) continue;
       this.pending.push({ cx: px, cz: pz });
     }
     // Prioritas: yang paling dekat dibuat lebih dulu.

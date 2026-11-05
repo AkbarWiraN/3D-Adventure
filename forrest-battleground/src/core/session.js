@@ -72,7 +72,9 @@ export class SoloSession {
     this._unsubs = [];
     this._mouseLook = { x: 0 };
     this._installEvents();
-    this._spawn();
+    // skipRingAdvance: respawn pertama (45 dtk lagi, prompt.md) mengambil ring
+    // berikutnya — spawn awal tetap ring 0 agar urutan ring deterministik.
+    this._spawn({ skipRingAdvance: true });
     this.combat = new SoloCombat(this);
   }
 
@@ -98,9 +100,9 @@ export class SoloSession {
     this._unsubs.push(on('input:death', () => { this.hud.show(false); document.getElementById('screen-death')?.classList.remove('hidden'); }));
   }
 
-  _spawn() {
+  _spawn(opts = {}) {
     // Spawn acak dari kandidat yang sudah divalidasi (>=40 titik).
-    const pos = randomSpawn();
+    const pos = randomSpawn([], 30, opts);
     this.player.spawnAt(pos);
     this.cameraRig._init = false;
     return pos;

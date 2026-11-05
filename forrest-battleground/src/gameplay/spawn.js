@@ -10,10 +10,23 @@ let counter = 0;
  * Ambil kandidat spawn.
  * @param avoid array posisi musuh/pemain lain {x,z}
  * @param minEnemyDist jarak minimal dari musuh
+ * @param opts.skipRingAdvance true => JANGAN majukan ring (dipakai Solo saat
+ *        start agar spawn identik dengan respawn pertama).
  */
-export function randomSpawn(avoid = [], minEnemyDist = 30) {
+export function randomSpawn(avoid = [], minEnemyDist = 30, opts = {}) {
   const world = getWorld();
-  const candidates = world.spawns;
+  // Spawn Solo diacak DARI RING: kandidat diurutkan jarak ke pusat, dibagi
+  // ring 32 m (pusat=0), lalu ring dipilih bergiliran deterministik. Tanpa ini
+  // spawn acak bisa jatuh di pinggir peta -> ring chunk aktif terpotong batas
+  // -> jumlah chunk/objek scene berubah antar sesi (flake leak-20x-check).
+  let candidates = world.spawns;
+  if (!avoid.length) {
+    const ringOf = (s) => Math.min(14, Math.floor(Math.hypot(s.x, s.z) / 32));
+    const sorted = [...candidates].sort((a, b) => ringOf(a) - ringOf(b));
+    const ring = opts.skipRingAdvance ? 0 : (counter % 15);
+    const inRing = sorted.filter((s) => ringOf(s) === ring);
+    if (inRing.length) candidates = inRing;
+  }
   if (!candidates.length) throw new Error('Tidak ada kandidat spawn');
 
   // Seed deterministik + penghitung supaya tetap bervariasi tapi dapat direproduksi saat tes.

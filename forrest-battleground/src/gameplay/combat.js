@@ -37,8 +37,13 @@ export class SoloCombat {
 
     const world = getWorld();
     // RNG terpisah dari world (loot acak, tapi tetap deterministik per sesi).
-    let seed = (Date.now() ^ 0x5f3759df) >>> 0;
+    // Mode debug (?debug=1): seed DIBEKUKAN supaya dua sesi berturut-turut
+    // membangun scene yang identik persis — prasyarat uji leak 20x
+    // (sebelumnya Date.now() membuat jumlah heldMesh bot acak -> flake).
+    const debug = typeof location !== 'undefined' && new URLSearchParams(location.search).get('debug') === '1';
+    let seed = (debug ? 0x5f3759df : (Date.now() ^ 0x5f3759df)) >>> 0;
     const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    this._rng = rng;
 
     // Loot POI bawaan + TAMBAHAN senjata tersebar acak (permintaan pemilik:
     // "senjata random lokasinya bisa di looting"). Sebagian ditaruh DEKAT
@@ -174,7 +179,8 @@ export class SoloCombat {
           b.hp = 100;
           b.mesh.visible = true;
           b.mesh.position.copy(b.home);
-          if (!b.weapon && Math.random() < 0.5) b.weapon = Math.random() < 0.5 ? 'sword' : 'bow';
+          // RNG sesi (bukan Math.random) — konsisten dengan seed debug beku.
+          if (!b.weapon && this._rng() < 0.5) b.weapon = this._rng() < 0.5 ? 'sword' : 'bow';
         }
         continue;
       }

@@ -37,8 +37,11 @@ async function main() {
   await sleep(3500);
 
   // Listener bus + sesi + heap (setelah GC paksa — heap mentah bukan indikator leak).
+  // GC 3x + jeda (pola leak-curve.mjs): 1x GC tidak cukup — objek besar sesi
+  // Solo (heightfield/chunk) sering baru dipromosikan ke old-space dan butuh
+  // siklus penuh. Tanpa ini usedJSHeapSize terdistorsi noise GC ±1-2 MB.
   const busSnap = `(async()=>{const m=await import('/src/core/bus.js');
-    if(typeof gc==='function'){gc();await new Promise(r=>setTimeout(r,250));}
+    if(typeof gc==='function'){for(let k=0;k<3;k++){gc();await new Promise(r=>setTimeout(r,300));}}
     return {attack:m.countListeners('input:attack'),look:m.countListeners('input:look'),
       map:m.countListeners('ui:toggleMap'),session:window.__fb.getSession()===null,
       heap:(performance.memory?.usedJSHeapSize??0)};})()`;
@@ -55,11 +58,23 @@ async function main() {
     return {objs,geos:geos.size,mats:mats.size,items:s.combat.items.length,bots:s.combat.bots.length,
       chunks:s.metrics().chunks,tex,shadowTarget};})()`;
 
+  // startSolo menunda konstruksi sesi lewat rAF+setTimeout(30). Sleep tetap bisa
+  // kalah dari race itu -> metrik 'live' membaca sisa scene sesi sebelumnya
+  // (flap ±2 objek). Tunggu sampai sesi BARU benar-benar ada, bukan sleep buta.
+  const waitSession = async () => {
+    for (let k = 0; k < 40; k++) {
+      const ok = await ev(`!!window.__fb.getSession()`);
+      if (ok) return;
+      await sleep(150);
+    }
+    throw new Error('sesi tidak terbentuk dalam 6 dtk');
+  };
+
   // Warmup 5 sesi: cache three.js/shader & baseline V8 stabil dulu, baru diukur.
   // Tanpa warmup, kenaikan awal bukan leak melainkan cache yang sedang mengisi.
   for (let i = 0; i < 5; i++) {
     await ev(`document.getElementById('btn-solo').click()`);
-    await sleep(1100);
+    await waitSession();
     await ev(`window.__fb.exitSolo()`);
     await sleep(500);
   }
@@ -67,7 +82,7 @@ async function main() {
   const samples = [];
   for (let i = 0; i < 20; i++) {
     await ev(`document.getElementById('btn-solo').click()`);
-    await sleep(1500);
+    await waitSession();
     if (i === 0 || i === 9 || i === 19) samples.push({ i: i + 1, phase: 'live', ...(await ev(liveMetrics)) });
     await ev(`window.__fb.exitSolo()`);
     await sleep(700);
