@@ -645,4 +645,67 @@ describe('Fase 3 — WSS authoritative', () => {
     assert.equal(me2.status, 200);
   });
 
+  test('13. heartbeat WS: koneksi zombie (pong mati) diputus, onlineCount turun', async () => {
+    // Gateway ini di-boot di before() dengan heartbeat default 30 s — terlalu lama
+    // untuk test. Reboot app kecil dengan heartbeat 150/60 ms lewat env override.
+    await app.close(); app = null;
+    process.env.WS_HEARTBEAT_PING_MS = '150';
+    process.env.WS_HEARTBEAT_TIMEOUT_MS = '60';
+    const mod = await import('../src/app.js');
+    app = await mod.buildApp();
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    const b = `http://127.0.0.1:${app.server.address().port}`;
+    const w = `ws://127.0.0.1:${app.server.address().port}/ws`;
+
+    const postL = (path, body, headers = {}) => fetch(`${b}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN, ...headers },
+      body: JSON.stringify(body),
+    });
+    resetAll();
+    const u = `qa_zomb_${Math.random().toString(36).slice(2, 8)}`;
+    const r = await postL('/api/v1/auth/register', { username: u, password: 'kata-sandi-qa-123', character: 'male' });
+    assert.equal(r.status, 201);
+    const { token } = await r.json();
+
+    const statusOnline = async () => {
+      const res = await fetch(`${b}/api/v1/maps`, { headers: { Origin: ORIGIN, Authorization: `Bearer ${token}` } });
+      if (res.status === 401) return -1;
+      const j = await res.json();
+      const m = (j.maps ?? []).find((x) => x.mapId === 'forest') ?? j.maps?.[0];
+      return m?.onlineCount ?? -2;
+    };
+
+    // --- Bagian 1: zombie TIDAK menjawab pong → diputus server ---------------
+    const z = new Client(w);
+    // Zombie nyata: matikan auto-pong internal `ws` (flag resmi library, dipakai
+    // juga oleh browser yang tab-nya crash — ping diterima tapi tak pernah dijawab).
+    z.ws.on('open', () => { z.ws._autoPong = false; });
+    await z.ready();
+    z.send({ t: 'auth', token }); await z.waitFor('auth_ok');
+    z.send({ t: 'join', room: 'forest' }); await z.waitFor('joined');
+    assert.equal(await statusOnline(), 1, 'online count harus 1 setelah join');
+
+    // Tunggu melewati 2 siklus ping + timeout (150+60 = 210 ms per siklus; loop 50 ms).
+    await wait(1200);
+    assert.ok(z.closed || z.ws.readyState >= 3, 'socket zombie tidak ditutup server');
+    assert.equal(await statusOnline(), 0, 'online count harus 0 setelah zombie diputus');
+
+    // --- Bagian 2: klien sehat (pong normal) TIDAK diputus -------------------
+    const h = new Client(w); // ws library otomatis menjawab ping dengan pong
+    await h.ready();
+    h.send({ t: 'auth', token }); await h.waitFor('auth_ok');
+    h.send({ t: 'join', room: 'forest' }); await h.waitFor('joined');
+    assert.equal(await statusOnline(), 1);
+    await wait(900); // beberapa siklus ping
+    assert.equal(h.closed, null, 'klien sehat salah diputus heartbeat');
+    assert.equal(await statusOnline(), 1, 'klien sehat harus tetap online');
+    h.send({ t: 'leave' }); await h.waitFor('leave_ack');
+    h.close();
+
+    // Kembalikan app standar untuk test lain (tidak ada — ini test terakhir).
+    delete process.env.WS_HEARTBEAT_PING_MS;
+    delete process.env.WS_HEARTBEAT_TIMEOUT_MS;
+  });
+
 });

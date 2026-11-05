@@ -2,12 +2,20 @@
 // prompt.md Fase 3: Origin handshake exact + auth-first (auth ≤5s atau close).
 // Satu session per akun (duplicate login: socket lama ditutup). Tidak menulis posisi ke SQLite.
 import { parseFrame, serverMsg, AUTH_TIMEOUT_MS } from './protocol.js';
+import { NETWORK } from '../../../src/shared/constants.js';
 import { Room } from './room.js';
 import { verifyToken } from '../auth/token.js';
 import { findById } from '../persistence/usersRepo.js';
 import crypto from 'node:crypto';
 
-export function createRealtime({ allowedOrigins, rooms = ['forest'], hardCap = 8, onLog = () => {} } = {}) {
+export function createRealtime({
+  allowedOrigins,
+  rooms = ['forest'],
+  hardCap = 8,
+  onLog = () => {},
+  heartbeatPingMs = NETWORK.HEARTBEAT_PING_MS,
+  heartbeatTimeoutMs = NETWORK.HEARTBEAT_TIMEOUT_MS,
+} = {}) {
   const allow = new Set(allowedOrigins || []);
   const room = new Room({ roomId: 'forest', hardCap });
 
@@ -41,10 +49,14 @@ export function createRealtime({ allowedOrigins, rooms = ['forest'], hardCap = 8
     const sessionId = crypto.randomUUID();
     const state = {
       sessionId, socket, authed: false, userId: null, username: null, character: 'male',
+      // Heartbeat WS-level: server ping; klien WAJIB pong (browser menjawab otomatis).
+      // `lastPongAt` dipakai loop untuk terminate koneksi zombie (koneksi mati tanpa FIN).
+      lastPongAt: Date.now(),
       authDeadline: setTimeout(() => {
         if (!state.authed) closeSocket(socket, 1008, 'AUTH_TIMEOUT');
       }, AUTH_TIMEOUT_MS),
     };
+    socket.on('pong', () => { state.lastPongAt = Date.now(); });
     timers.push(state.authDeadline);
     sockets.set(sessionId, state);
 
@@ -181,12 +193,28 @@ export function createRealtime({ allowedOrigins, rooms = ['forest'], hardCap = 8
 
   // ------------------------------------------------------------- loop
   let last = 0;
-  let snapAcc = 0, mapAcc = 0;
+  let snapAcc = 0, mapAcc = 0, hbAcc = 0;
   const loop = setInterval(() => {
     const t = Date.now();
     const dt = last ? (t - last) / 1000 : 0.05;
     last = t;
     room.step(Math.min(dt, 0.1));
+    hbAcc += dt;
+    if (hbAcc >= heartbeatPingMs / 1000) {
+      hbAcc = 0;
+      const cutoff = Date.now() - heartbeatTimeoutMs - heartbeatPingMs;
+      for (const st of sockets.values()) {
+        // Koneksi zombie: pong terakhir sudah melewati satu interval penuh tanpa jawaban.
+        // Jangan terminate yang sudah closing/closed (readyState 2/3).
+        if (st.socket.readyState >= 2) continue;
+        if (st.lastPongAt < cutoff) {
+          onLog('ws_heartbeat_timeout', { sessionId: st.sessionId, userId: st.userId });
+          try { st.socket.terminate(); } catch { closeSocket(st.socket, 1001, 'HEARTBEAT_TIMEOUT'); }
+          continue;
+        }
+        try { st.socket.ping(); } catch { /* sudah tutup */ }
+      }
+    }
     snapAcc += dt; mapAcc += dt;
     if (snapAcc >= 0.1) {
       snapAcc = 0;

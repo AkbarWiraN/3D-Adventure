@@ -13,7 +13,11 @@ export async function registerRealtime(app, { allowedOrigins, hardCap = 8 } = {}
   // maxPayload 16 KiB ditegakkan di transport (prompt Fase 3 butir 2).
   await app.register(websocket, { options: { maxPayload: 16 * 1024 } });
 
-  realtime = createRealtime({ allowedOrigins, hardCap });
+  // Heartbeat bisa di-override lewat env untuk uji zombie tanpa menunggu 40 detik
+  // nyata (produksi tetap NETWORK.HEARTBEAT_* dari constants.js).
+  const hbPing = Number(process.env.WS_HEARTBEAT_PING_MS || 0) || undefined;
+  const hbTimeout = Number(process.env.WS_HEARTBEAT_TIMEOUT_MS || 0) || undefined;
+  realtime = createRealtime({ allowedOrigins, hardCap, heartbeatPingMs: hbPing, heartbeatTimeoutMs: hbTimeout });
 
   app.get('/ws', { websocket: true }, (socket, req) => {
     realtime.handleConnection(socket, req);

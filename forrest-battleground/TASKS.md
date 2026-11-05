@@ -353,6 +353,38 @@ _(IN PROGRESS)_
 - Pra-cek produksi bersih: 3 service active+enabled, cert LE terlayani (s/d 2 Feb 2027),
   guard 200/403. Tidak ada drift sesi paralel malam ini.
 
+### Catatan run 2026-11-05 (malam #9) — heartbeat WS ping/pong: zombie session diputus
+
+- **Celah spec ditutup**: prompt.md §4.4/§8 mewajibkan "koneksi putus tanpa leave
+  dibersihkan oleh ping/pong timeout" + "heartbeat", tapi gateway TIDAK punya
+  heartbeat WS-level sama sekali. Koneksi mati mendadak (HP hilang sinyal, NAT
+  timeout, tab crash) → socket tak pernah emit 'close' → pemain jadi ZOMBIE
+  selamanya di room: online count salah, slot cap terkunci.
+- **Implementasi**: `NETWORK.HEARTBEAT_PING_MS=30000` + `HEARTBEAT_TIMEOUT_MS=10000`
+  di `src/shared/constants.js` (satu sumber kebenaran client+server). Gateway loop
+  20 Hz mengirim control-frame `ping()` tiap 30 s; `lastPongAt` diperbarui handler
+  `pong`; socket yang tidak menjawab >1 siklus (ping 30 s + timeout 10 s) di-
+  `terminate()` (bukan `close()` — zombie tidak akan menjawab close handshake).
+  Log `ws_heartbeat_timeout` tercatat. Socket readyState ≥2 di-skip (sudah closing).
+  Override env `WS_HEARTBEAT_PING_MS/WS_HEARTBEAT_TIMEOUT_MS` hanya untuk test
+  (produksi pakai konstanta).
+- **Bukti NYATA** (`realtime.test.js` **13/13**, test #13 baru, heartbeat dipercepat
+  150/60 ms lewat env):
+  (a) klien zombie (auto-pong `ws` dimatikan via `_autoPong=false` — setara tab
+      browser crash) join room → onlineCount 1 → server ping tak dijawab →
+      socket di-terminate ~210 ms, onlineCount kembali 0 (via GET /api/v1/maps);
+  (b) klien sehat (pong otomatis) bertahan beberapa siklus ping tanpa diputus,
+      onlineCount tetap 1, leave normal.
+  Catatan debugging jujur: pendekatan pertama (removeAllListeners('ping')) gagal
+  karena auto-pong `ws` adalah flag `_autoPong` di receiver, bukan listener biasa —
+  diverifikasi lewat probe terpisah sebelum test difinalkan.
+- **Regresi hijau**: unit 49/49, server suite 36/36 (http+security+auth+realtime),
+  build:pages 38 file 2.11 MB audit lolos.
+- **Tanpa dampak Solo/offline** — heartbeat hanya di gateway WSS.
+- Catatan jujur: ping/pong control frame dijawab OTOMATIS oleh browser/WebSocket API,
+  jadi tidak ada perubahan yang dibutuhkan di klien FE; zombie di sisi nyata terjadi
+  saat proses browser mati total (bukan tab lag biasa, yang tetap mem-pong).
+
 ## Butuh Keputusan
 
 1. ~~Konflik port 80/443 Apache vs nginx~~ — TERATASI 5 Nov 16:13: sesi pentest

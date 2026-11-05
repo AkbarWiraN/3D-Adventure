@@ -60,6 +60,11 @@ export const NETWORK = Object.freeze({
   MAX_ATTACK_PER_SEC: 50,
   AUTH_TIMEOUT_MS: 5000,
   ROOM_HARD_CAP: 8,
+  // Heartbeat WS (ping/pong kontrol frame, prompt.md §4.4 & §8):
+  // server ping tiap HEARTBEAT_PING_MS; klien harus pong < HEARTBEAT_TIMEOUT_MS
+  // sejak ping terakhir, kalau tidak koneksi dianggap mati (zombie NAT/Hildebrand).
+  HEARTBEAT_PING_MS: 30000,
+  HEARTBEAT_TIMEOUT_MS: 10000,
 });
 
 export const SPAWN = Object.freeze({
