@@ -537,6 +537,23 @@ _(IN PROGRESS)_
   yang bisa dikerjakan dari VPS kini seluruhnya [x]; sisa murni PENDING_MANUAL HP asli.
 - Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
 
+### Catatan run 2026-11-05 (malam #14) — verifikasi penuh, false alarm PATH Node
+- Pra-cek: semua service/timer active; disk 38 GB free; load 0.10. `/healthz` publik
+  403 untuk Origin sah — dicek ke TASKS.md baris 28/58: memang desain (healthz
+  loopback-only, tercatat sejak Fase 1), BUKAN drift. prod-smoke produksi 14/14 PASS
+  (register, JWT, leaderboard 2 endpoint, forest status, WS origin-deny/auth/join,
+  forged token 401, logout revoke).
+- FALSE ALARM regresi: `npm test` pertama gagal 2 (auth.test + http.test healthz 503)
+  karena cron shell memakai Node 22 sistem (/usr/bin/node v22.23.3) sementara
+  better-sqlite3 dikompilasi untuk Node 24 (NODE_MODULE_VERSION 137 vs 127,
+  ERR_DLOPEN_FAILED) — persis gotcha terdokumentasi di README baris 44. Dengan
+  `PATH=/opt/node24/bin:$PATH`: server suite 36/36 PASS (35.4 s), unit FE 49/49 PASS.
+  Tidak ada perubahan kode; service produksi tidak terpengaruh (systemd pakai
+  /opt/node24/bin/node absolut).
+- Checklist: tidak ada item [ ] baru yang bisa dikerjakan dari VPS (sisa murni
+  PENDING_MANUAL HP asli). Butuh Keputusan tetap: 1 item (jendela sesi paralel —
+  tanpa insiden malam ini).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader
