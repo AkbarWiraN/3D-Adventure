@@ -192,6 +192,17 @@ _(IN PROGRESS)_
   query leaderboard jalan di DB hasil restore. Disk 43 GB free (alarm <10 GB).
   CATATAN JUJUR: restore drill ke file TERPISAH, belum pernah restore di atas DB
   produksi (itu memang tidak boleh dilakukan sembarangan).
+- [x] [Security] Server-side logout + revokasi token (prompt.md §4.2: "WS segera ditutup saat
+  explicit logout + jti denylist in-memory") — sebelumnya logout MURNI client-side (token tetap
+  sah sampai expired). Implementasi: denylist jti in-memory (`auth/revocation.js`, disapu tiap
+  5 m bersama rateLimit), `verifyToken` menolak jti revoked (TOKEN_REVOKED), route
+  `POST /api/v1/auth/logout` (requireAuth → revoke jti token INI → gateway `kickUser(userId)` →
+  close WS 1008 SESSION_REVOKED + room.leave), FE `api.logout()` fire-and-forget di Lobby.logout().
+  Bukti NYATA realtime.test.js **12/12** — test #12 menegaskan lewat server nyata: token berlaku
+  sebelum logout; join room online; POST logout → 200 {ok:true}; socket WS AKTIF langsung ditutup
+  1008 SESSION_REVOKED; token sama → 401 di REST; token sama → 1008 saat auth WS baru; logout
+  kedua kali → 401 (idempotent); login ulang → token BARU tetap sah. Regresi: server 35/35,
+  unit 49/49, build:pages 38 file 2.11 MB audit lolos.
 - [x] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
   forged inventory/kill, koordinat negatif/NaN)
   Bukti NYATA: `realtime.test.js` 11/11 PASS — test #10 menegaskan lewat SERVER NYATA:
@@ -303,6 +314,21 @@ _(IN PROGRESS)_
   data identik (backup diambil 24 detik sebelum restore). Safety copy scratch
   dihapus setelah verifikasi.
 - HOUSEKEEPING: seksi PENDING_MANUAL ganda di file ini digabung jadi satu.
+
+### Catatan run 2026-11-05 (malam #7) — logout server-side + revokasi token jti
+- Menutup celah spec §4.2 yang masih terbuka: logout sebelumnya hanya membersihkan token di
+  memori klien — token curian tetap sah sampai expired (≤20 m). Sekarang `POST /api/v1/auth/logout`
+  merevoke jti (denylist in-memory, sweep 5 m) DAN menutup sesi WS aktif akun itu
+  (1008 SESSION_REVOKED, keluar room). FE Lobby.logout() memanggilnya fire-and-forget.
+- Bukti: realtime.test.js 12/12 (test #12 baru, 5 efek diverifikasi lewat server nyata),
+  server suite 35/35, unit 49/49, build:pages 38 file 2.11 MB audit lolos.
+- Produksi dicek sebelum bekerja: forest-battleground + nginx + fb-backup.timer active+enabled,
+  cert LE asli terlayani, Origin guard publik 200/403 — tanpa drift (tidak ada insiden sesi paralel).
+- Catatan jujur: denylist in-memory hilang saat restart (sesuai spec "in-memory hingga expiry";
+  TTL 20 m membatasi jendela risiko). Verifikasi E2E browser penuh produksi untuk fitur ini
+  belum dijalankan ulang — dipastikan run berikutnya.
+- Belum dideploy ke produksi (service masih kode sebelumnya) — butuh restart service yang
+  dijadwalkan hati-hati; dicatat di sini, dieksekusi run ini juga (di bawah, setelah push).
 
 ## Butuh Keputusan
 

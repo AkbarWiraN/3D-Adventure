@@ -4,6 +4,7 @@
 
 import crypto from 'node:crypto';
 import { config } from '../config.js';
+import { isRevoked } from './revocation.js';
 
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 const unb64url = (str) => Buffer.from(str, 'base64url');
@@ -90,6 +91,10 @@ export function verifyToken(token) {
   }
   if (typeof payload.sub !== 'string' || !payload.sub) {
     return { ok: false, code: 'TOKEN_INVALID' };
+  }
+  // Explicit logout: jti di-denylist → token tidak berlaku lagi (§4.2).
+  if (typeof payload.jti === 'string' && isRevoked(payload.jti)) {
+    return { ok: false, code: 'TOKEN_REVOKED' };
   }
 
   return { ok: true, claims: payload };

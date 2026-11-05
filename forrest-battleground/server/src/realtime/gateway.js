@@ -218,6 +218,17 @@ export function createRealtime({ allowedOrigins, rooms = ['forest'], hardCap = 8
   return {
     room,
     handleConnection,
+    /** Tutup sesi WS aktif milik userId (dipakai POST /auth/logout, §4.2). */
+    kickUser(userId) {
+      const sid = byUser.get(userId);
+      if (!sid) return false;
+      const st = sockets.get(sid);
+      if (!st) return false;
+      room.leave(sid, 'revoked');
+      byUser.delete(userId);
+      closeSocket(st.socket, 1008, 'SESSION_REVOKED');
+      return true;
+    },
     status() {
       return {
         roomId: room.roomId,

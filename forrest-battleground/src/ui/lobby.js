@@ -95,6 +95,9 @@ export class Lobby {
   }
 
   logout() {
+    // Logout sungguhan di server: revoke token + tutup sesi WS (prompt.md §4.2).
+    // Fire-and-forget — UI jangan menunggu jaringan; gagal pun token lokal tetap dibersihkan.
+    api.logout().catch(() => {});
     clearInterval(this.timer);
     this.timer = 0;
     clearToken();

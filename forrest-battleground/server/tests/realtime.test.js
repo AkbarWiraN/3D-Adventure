@@ -586,4 +586,63 @@ describe('Fase 3 — WSS authoritative', () => {
     ck.close(); cv.close(); cv2.close(); cv3.close();
   });
 
+
+  test('12. POST /auth/logout: revoke token (REST+WS) + tutup sesi WS aktif', async () => {
+    const a = await makeUser('logout');
+    const authed = (p) => fetch(`${base}${p}`, { headers: { Origin: ORIGIN, Authorization: `Bearer ${a.token}` } });
+
+    // Sebelum logout: token berlaku.
+    assert.equal((await authed('/api/v1/users/me')).status, 200);
+
+    // Join room dulu — pemain online.
+    const c = new Client(wsBase);
+    await c.ready();
+    c.send({ t: 'auth', token: a.token });
+    assert.ok(await c.waitFor('auth_ok'), 'auth_ok tidak diterima');
+    c.send({ t: 'join', room: 'forest' });
+    const joined = await c.waitFor('joined');
+    assert.ok(joined, 'joined tidak diterima');
+
+    // Logout via REST dengan token yang sedang dipakai WS.
+    const lo = await fetch(`${base}/api/v1/auth/logout`, {
+      method: 'POST',
+      headers: { Origin: ORIGIN, Authorization: `Bearer ${a.token}` },
+    });
+    assert.equal(lo.status, 200, `logout status ${lo.status}`);
+    assert.deepEqual(await lo.json(), { ok: true });
+
+    // Efek 1: WS aktif langsung ditutup server (1008 SESSION_REVOKED).
+    await wait(300);
+    assert.ok(c.closed, 'socket tidak ditutup setelah logout');
+    assert.equal(c.closed.code, 1008);
+    assert.equal(c.closed.reason, 'SESSION_REVOKED');
+    c.close();
+
+    // Efek 2: token yang sama DITOLAK di REST (jti denylist).
+    assert.equal((await authed('/api/v1/users/me')).status, 401);
+
+    // Efek 3: token yang sama DITOLAK saat auth WS baru.
+    const c2 = new Client(wsBase);
+    await c2.ready();
+    c2.send({ t: 'auth', token: a.token });
+    await wait(300);
+    assert.ok(c2.closed, 'socket dengan token revoked tidak ditutup');
+    assert.equal(c2.closed.code, 1008);
+    c2.close();
+
+    // Efek 4: logout dua kali dengan token sama → 401 (sudah revoked), idempotent aman.
+    const lo2 = await fetch(`${base}/api/v1/auth/logout`, {
+      method: 'POST',
+      headers: { Origin: ORIGIN, Authorization: `Bearer ${a.token}` },
+    });
+    assert.equal(lo2.status, 401);
+
+    // Efek 5: login ulang menghasilkan token BARU yang tetap berlaku.
+    const relogin = await post('/api/v1/auth/login', { username: a.username, password: 'kata-sandi-qa-123' });
+    assert.equal(relogin.status, 200);
+    const t2 = (await relogin.json()).token;
+    const me2 = await fetch(`${base}/api/v1/users/me`, { headers: { Origin: ORIGIN, Authorization: `Bearer ${t2}` } });
+    assert.equal(me2.status, 200);
+  });
+
 });

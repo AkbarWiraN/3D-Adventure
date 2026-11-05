@@ -6,6 +6,9 @@ import {
 } from '../../auth/validation.js';
 import { createUser, findByCanonical, getPublicById, toPublicUser } from '../../persistence/usersRepo.js';
 import { take as rateTake, check as rateCheck, commit as rateCommit } from '../../security/rateLimit.js';
+import { requireAuth } from '../../auth/requireAuth.js';
+import { revokeJti } from '../../auth/revocation.js';
+import { getRealtime } from '../../realtime/index.js';
 
 // Batas laju (prompt.md §4.6). Ketat untuk register, sedang untuk login.
 // QA backend lokal boleh bikin banyak akun uji; produksi tetap 5/15m.
@@ -116,5 +119,15 @@ export async function registerAuthRoutes(app) {
 
     req.log.info({ userId: row.id }, 'login berhasil');
     return reply.send({ token, expiresAt, user });
+  });
+
+  // POST /auth/logout — prompt.md §4.2: revoke jti token INI + tutup sesi WS aktif.
+  // Efek langsung: token tidak bisa dipakai lagi (REST 401 + WS auth 1008) walau
+  // belum kedaluwarsa; pemain yang sedang di room langsung dikeluarkan.
+  app.post('/api/v1/auth/logout', { preHandler: requireAuth }, async (req, reply) => {
+    revokeJti(req.tokenClaims.jti, req.tokenClaims.exp * 1000);
+    getRealtime()?.kickUser(req.user.id);
+    req.log.info({ userId: req.user.id }, 'logout — token direvoke, sesi WS ditutup');
+    return reply.send({ ok: true });
   });
 }

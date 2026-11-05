@@ -103,6 +103,9 @@ export const api = {
     request('/api/v1/auth/register', { method: 'POST', body: { username, password, character } }),
   login: (username, password) =>
     request('/api/v1/auth/login', { method: 'POST', body: { username, password } }),
+  // Server-side logout (prompt.md §4.2): revoke jti + tutup WS. Token boleh null
+  // (sudah dibersihkan lokal) — panggilan gagal diabaikan pemanggil.
+  logout: () => request('/api/v1/auth/logout', { method: 'POST', auth: true }),
   me: () => request('/api/v1/users/me', { auth: true }),
   updateMe: (character) => request('/api/v1/users/me', { method: 'PATCH', body: { character }, auth: true }),
   maps: () => request('/api/v1/maps', { auth: true }),

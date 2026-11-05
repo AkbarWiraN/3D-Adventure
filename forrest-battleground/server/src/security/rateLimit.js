@@ -1,6 +1,8 @@
 // rateLimit.js — pembatas laju in-memory sederhana per IP dan per username.
 // prompt.md §4.6: rate limit register/login. Tanpa dependency tambahan.
 // Catatan: in-memory = hilang saat restart & tidak lintas proses. Cukup untuk 1 proses.
+// Juga menyapu denylist jti logout (revocation.js) supaya tidak tumbuh tanpa batas.
+import { sweepRevocations } from '../auth/revocation.js';
 
 const buckets = new Map();
 
@@ -76,5 +78,5 @@ export function size() {
 }
 
 // Sweep tiap 5 menit; unref supaya tidak menahan proses saat test.
-const timer = setInterval(sweep, 5 * 60 * 1000);
+const timer = setInterval(() => { sweep(); sweepRevocations(); }, 5 * 60 * 1000);
 if (typeof timer.unref === 'function') timer.unref();
