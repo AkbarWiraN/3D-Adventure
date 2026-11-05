@@ -242,6 +242,18 @@ _(IN PROGRESS)_
 
 ---
 
+### Catatan run 2026-11-05 (sore) — leak-20x distabilkan
+- Tiga akar flake leak-20x terbukti via bedah scene CDP & diperbaiki (commit c364259):
+  (1) spawn acak dekat tepi -> ring chunk terpotong batas -> chunk count bervariasi
+      (fix: filter chunk luar peta + spawn Solo dari ring jarak deterministik);
+  (2) seed RNG SoloCombat = Date.now() -> jumlah heldMesh/loot acak antar sesi
+      (fix: seed beku khusus ?debug=1, produksi tetap acak);
+  (3) GC 1x di busSnap -> noise heap ±1-2 MB (fix: GC 3x + jeda, pola leak-curve).
+- Hasil: scene identik antar sesi (578 obj / 297 geo / 127 mat), slope heap +49 KB,
+  PASS 2x berturut. Regresi penuh hijau (unit 49, server 33, smoke+mobile PASS).
+- PATH HALUS produksi: URL situs FB = /3D-Adventure/forrest-battleground/
+  (root = GHOSTDASH). browser-smoke produksi PASS dengan FRONT_URL tersebut.
+
 ## Butuh Keputusan
 
 _(kosong)_
