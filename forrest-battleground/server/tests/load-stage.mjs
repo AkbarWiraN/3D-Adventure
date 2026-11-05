@@ -6,6 +6,13 @@
 // CPU = batas ATAS (server + overhead klien). RTT loopback bukan RTT internet.
 // Yang diukur nyata: jitter snapshot, tickHz efektif, RSS, benar/tidaknya protokol.
 process.env.NODE_ENV = 'test';
+// Batas register PRODUKSI 5/15m/IP terlalu ketat untuk uji beban (16 akun
+// sekali jalan). Override hanya untuk proses test ini — produksi tak berubah.
+process.env.REGISTER_RATE_MAX = '64';
+// Stage 16 menguji APAKAH cap 8 aman dinaikkan. Untuk bisa mengukurnya, room
+// harus mengizinkan 16 dulu — cap PRODUKSI tetap 8 sampai metrik membuktikan
+// aman (CPU <70%, tick p95 ≤50 ms). Nilai ini hanya untuk proses uji ini.
+process.env.ROOM_HARD_CAP = '16';
 process.env.FRONTEND_ORIGINS = 'https://akbarwiran.github.io';
 process.env.DATABASE_FILE = ':memory:';
 process.env.AUTH_SECRET = 'x'.repeat(48);
@@ -317,9 +324,11 @@ async function pvpSwordVsBow() {
 }
 
 await pvpSwordVsBow();
-await stage(2);
-await stage(4);
-await stage(8);
+// Cap evaluasi: default 2→4→8. STAGES=16 menambah stage 16 untuk MENILAI
+// apakah cap boleh naik (prompt.md Fase 4: 16 hanya jika CPU <70%, tick p95
+// ≤50 ms, koneksi stabil). Bukan mengubah cap produksi — hanya mengukur.
+const STAGES = (process.env.STAGES || '2,4,8').split(',').map((x) => Number(x.trim())).filter((n) => n > 0);
+for (const n of STAGES) await stage(n);
 
 console.log('REPORT:', JSON.stringify(R, null, 1));
 console.log('RINGKAS:');

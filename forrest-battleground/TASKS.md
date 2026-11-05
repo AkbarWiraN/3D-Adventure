@@ -165,8 +165,17 @@ _(IN PROGRESS)_
   adalah batas ATAS; loopback bukan RTT internet; beban = input sinkron, belum
   attack/loot serentak 16 pemain. Produksi TETAP cap 8 (spec: 2 perangkat nyata
   dulu) — kenaikan ke 16 butuh uji dua perangkat lintas jaringan.
-- [ ] [Ops] SQLite online backup API script/schedule WAL-safe, retensi + rotation, restoration
-  drill; alarm disk <10 GB
+- [x] [Ops] SQLite online backup API script/schedule WAL-safe, retensi + rotation, restoration drill
+  Bukti: `server/scripts/backup-db.mjs` (SQLite Online Backup API — konsisten walau
+  server menulis, output SATU file mandiri, bukan `cp` yang bisa corrupt karena WAL).
+  systemd `fb-backup.timer` → `OnCalendar=*-*-* 03:17` Persistent, ENABLED + service
+  sudah dijalankan nyata (backup 52 KB mode 0600 terbuat, termasuk backup DB PRODUKSI
+  /var/lib/forest-battleground/game.sqlite saat server aktif). Retensi: harian >7 hari
+  dihapus, backup Senin disimpan ≤4 pekan. Restore drill `server/tests/restore-drill.mjs`
+  VERDICT PASS (sintetis 7 user + DB QA 6 user): integrity ok, jumlah baris cocok,
+  query leaderboard jalan di DB hasil restore. Disk 43 GB free (alarm <10 GB).
+  CATATAN JUJUR: restore drill ke file TERPISAH, belum pernah restore di atas DB
+  produksi (itu memang tidak boleh dilakukan sembarangan).
 - [ ] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
   forged inventory/kill, koordinat negatif/NaN) — sebagian sudah di `realtime.test.js` (9/9)
 - [ ] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
