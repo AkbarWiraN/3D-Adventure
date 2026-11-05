@@ -636,3 +636,9 @@ _(IN PROGRESS)_
 - Healthz: loopback 200 {"ok":true,"db":true}; publik 403 (by design).
 - Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS · unit FE 49/49 PASS (`node --test tests/unit/*.test.js` — glob eksplisit, tanpa glob Node mencoba load dir sebagai modul CJS dan MODULE_NOT_FOUND) · prod-smoke produksi 14/14 PASS.
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run 2026-11-06 (malam #28)
+- Pra-cek: forest-battleground + nginx active; fb-backup.timer & fb-disk-check.timer enabled; disk 38 GB free (44%); origin/main sinkron, tanpa insiden sesi paralel.
+- Healthz: loopback 200 {"ok":true,"db":true}; publik 403 (by design).
+- Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS · unit FE 49/49 PASS (`node --test tests/unit/*.test.js` — glob eksplisit) · prod-smoke produksi 14/14 PASS (origin-deny 403 → register 409 → login JWT → users/me → leaderboard → forest status hardCap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged 401 → logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
