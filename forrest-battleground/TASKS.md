@@ -493,6 +493,21 @@ _(IN PROGRESS)_
   logout+revokasi bekerja).
 - Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
 
+### Catatan run 2026-11-05 (malam #12) — alarm disk <10 GB (menutup gap Ops Fase 4)
+- Pra-cek produksi bersih: forest-battleground + nginx active+enabled; fb-backup.timer
+  terjadwal (next 03:17); guard Origin 403/200/403 benar; Pages 200; load 0.07; RSS 162 MB.
+- GAP NYATA yang ditutup: prompt.md §Fase 4 [Ops] mewajibkan "disk alerts <10GB free"
+  (lihat §Disk 50GB) — selama ini hanya dicek manual per run. Dibuat mekanisme OTOMATIS:
+  `server/scripts/disk-check.sh` (rootfs + /var/log/journal + backup-dir; threshold 10 GB;
+  tambahan warning journald >500 MB) + systemd `fb-disk-check.timer` harian 04:03
+  (ENABLED, exit 1 → journal tampak saat ALERT).
+- Uji nyata: `systemctl start fb-disk-check.service` → exit 0, journal:
+  "OK rootfs: free space 38 GB (/)" / "OK journald" / "OK backup-dir" / "Semua disk check OK".
+- Catatan: backup-db.mjs retensi harian>7d+mingguan<=4 berjalan (1 file 60 KB, integrity ok
+  dari run 15:08 — users=25). Journal 407 MB (cap 400M — di atas karena vacuum harian timer;
+  disk-check akan warning bila >500 MB).
+- Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader
