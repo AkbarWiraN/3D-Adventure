@@ -150,12 +150,12 @@ async function main() {
     R.dialog = await ev(`(()=>{window.__dialogs=[];const o=window.confirm;window.confirm=(m)=>{window.__dialogs.push(m);return true};return 'patched'})()`);
     const btnId = qaUser ? 'btn-login' : 'btn-register';
     R.registerClick = await ev(`document.getElementById('${btnId}').click(),'clicked'`);
-    // Tunggu greeting lobby (hanya terisi setelah refresh() sukses) — lebih
-    // deterministik daripada sleep tetap untuk menyimpulkan register sukses.
-    for (let i = 0; i < 24; i++) {
+    // Tunggu greeting lobby berisi username — refresh() kadang lambat di jaringan
+    // nyata; polling lebih lama (maks 20 s) supaya tidak false-fail.
+    for (let i = 0; i < 40; i++) {
       await sleep(500);
       const g = await ev(`document.getElementById('lobby-greeting').textContent`);
-      if (/Selamat datang,/.test(g || '')) break;
+      if (/Selamat datang, \S/.test(g || '')) break;
     }
     R.authStatus = await ev(`document.getElementById('lobby-greeting').textContent`);
     R.dialogs = await ev(`window.__dialogs`);
@@ -227,7 +227,11 @@ async function main() {
       await ev(`document.getElementById('auth-username').value='${userC}'`);
       await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
       await ev(`document.getElementById('btn-login').click()`);
-      await sleep(5000);
+      for (let i = 0; i < 40; i++) {
+        await sleep(500);
+        const g = await ev(`document.getElementById('lobby-greeting').textContent`);
+        if (/Selamat datang, \S/.test(g || '')) break;
+      }
       R.onlineC.loginStatus = await ev(`document.getElementById('lobby-greeting').textContent`);
       await ev(`document.getElementById('btn-lobby-online').click()`);
       for (let i = 0; i < 32; i++) {

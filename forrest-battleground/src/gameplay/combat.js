@@ -7,7 +7,9 @@ import { WEAPONS, DAMAGE, takeLoot, weaponClass, canAttack } from './combatRules
 const PICKUP = 2.5;
 // Ken (6 Nov): "1-2 bot tiap 100m" di map 1024×1024 → ~24 bot tersebar acak.
 const BOT_COUNT = 24;
-const LOOT_SPOTS = 26;              // senjata tersebar acak di seluruh map (bisa di-loot)
+// Senjata di ALAM TERBUKA (bukan cuma rumah): cincin dekat spawn + acak seluruh map.
+const LOOT_NEAR_SPAWN = 12;
+const LOOT_WILD = 48;
 const BOT_ATTACK_RANGE = 1.8;
 const BOT_HIT_COOLDOWN_MS = 1400;
 const BOT_DAMAGE = 20;              // semua hit valid 20 HP (prompt.md §1.1)
@@ -51,25 +53,19 @@ export class SoloCombat {
     const spots = world.loot;
     spots.forEach((p, i) => this.addLoot(p.x, p.z, ['bow', 'sword', 'arrows'][i % 3], p.id));
     const playerSpawn = this.s.player.position;
-    for (let i = 0; i < LOOT_SPOTS; i++) {
-      let x, z;
-      if (i < 10) {
-        // 10 loot pertama: cincin dekat pemain (6–24 m) — pasti terlihat di awal.
-        const ang = (i / 10) * Math.PI * 2 + rng() * 0.5;
-        const rad = 6 + rng() * 18;
-        x = playerSpawn.x + Math.cos(ang) * rad;
-        z = playerSpawn.z + Math.sin(ang) * rad;
-      } else {
-        const sp = world.spawns[(i * 7 + 3) % world.spawns.length];
-        const ang = rng() * Math.PI * 2;
-        const rad = 4 + rng() * 22;
-        x = sp.x + Math.cos(ang) * rad;
-        z = sp.z + Math.sin(ang) * rad;
-      }
-      x = Math.max(-500, Math.min(500, x));
-      z = Math.max(-500, Math.min(500, z));
-      const type = ['sword', 'bow', 'arrows'][Math.floor(rng() * 3)];
-      this.addLoot(x, z, type, `wild-${i}`);
+    // (a) Dekat spawn pemain — pasti terlihat saat mulai.
+    for (let i = 0; i < LOOT_NEAR_SPAWN; i++) {
+      const ang = (i / LOOT_NEAR_SPAWN) * Math.PI * 2 + rng() * 0.5;
+      const rad = 6 + rng() * 20;
+      const x = Math.max(-500, Math.min(500, playerSpawn.x + Math.cos(ang) * rad));
+      const z = Math.max(-500, Math.min(500, playerSpawn.z + Math.sin(ang) * rad));
+      this.addLoot(x, z, ['sword', 'bow', 'arrows'][Math.floor(rng() * 3)], `near-${i}`);
+    }
+    // (b) Acak merata di SELURUH map — di alam terbuka, bukan cuma rumah.
+    for (let i = 0; i < LOOT_WILD; i++) {
+      const x = -480 + rng() * 960;
+      const z = -480 + rng() * 960;
+      this.addLoot(x, z, ['sword', 'bow', 'arrows'][Math.floor(rng() * 3)], `wild-${i}`);
     }
 
     // Bot: menyerang, mengejar, membawa senjata (berpura-pura jadi player).
@@ -142,6 +138,20 @@ export class SoloCombat {
 
   aim(on) { this.s.cameraRig.setAiming(on); this.s.player.setAiming(on); this.s.hud.setCrosshair(on); }
 
+  /** Anak panah proyektil kecil yang terbang dari pemain ke titik tujuan. */
+  _flyArrow(from, to) {
+    if (!this.arrows) this.arrows = [];
+    const m = new THREE.Mesh(
+      new THREE.ConeGeometry(0.03, 0.5, 5),
+      new THREE.MeshStandardMaterial({ color: 0xd6c48a })
+    );
+    m.position.copy(from);
+    m.lookAt(to);
+    m.rotateX(Math.PI / 2); // cone menunjuk ke arah terbang
+    this.root.add(m);
+    this.arrows.push({ mesh: m, from: from.clone(), to: to.clone(), t: 0 });
+  }
+
   /** Bot mati → jatuhkan senjatanya sebagai loot yang bisa diambil pemain. */
   _killBot(b) {
     b.alive = false;
@@ -167,6 +177,19 @@ export class SoloCombat {
         t.line.geometry.dispose();
         t.line.material.dispose();
         this.tracers.splice(this.tracers.indexOf(t), 1);
+      }
+    }
+    // Panah terbang (±0.25 s sampai tujuan lalu hilang).
+    if (this.arrows) {
+      for (const a of [...this.arrows]) {
+        a.t = Math.min(1, a.t + dt * 4);
+        a.mesh.position.lerpVectors(a.from, a.to, a.t);
+        if (a.t >= 1) {
+          this.root.remove(a.mesh);
+          a.mesh.geometry.dispose();
+          a.mesh.material.dispose();
+          this.arrows.splice(this.arrows.indexOf(a), 1);
+        }
       }
     }
 
@@ -259,6 +282,8 @@ export class SoloCombat {
     if (weapon === 'bow' && held.ammo <= 0) return this.s.hud.toast('Anak panah habis');
     this.cooldown = rule.cooldown;
     if (weapon === 'bow') held.ammo--;
+    // Animasi serang SELALU jalan — walau tak ada musuh yang kena.
+    this.s.player.playAttack(weapon === 'bow' ? 'bow' : 'sword');
 
     const origin = this.s.player.position.clone().add(new THREE.Vector3(0, 1, 0));
     const dir = new THREE.Vector3(...Object.values(this.s.cameraRig.aimDirection()));
@@ -281,6 +306,8 @@ export class SoloCombat {
       );
       this.tracers.push({ line, life: 0.18 });
       this.root.add(line);
+      // Anak panah proyektil terbang (visual, walau tak kena musuh).
+      this._flyArrow(from, to);
     }
 
     if (target) {
@@ -337,6 +364,8 @@ export class SoloCombat {
   updateHud() {
     const item = this.inventory[this.slot];
     this.s.hud.setWeapon(item?.type === 'bow' ? 'Busur' : item?.type === 'sword' ? 'Pedang' : 'Tangan Kosong', item?.ammo ?? null);
+    // Senjata tampak di tangan karakter (pedang/busur).
+    this.s.player.setWeaponMesh(item?.type ?? null);
   }
 
   dispose() {
@@ -348,5 +377,9 @@ export class SoloCombat {
       else o.material?.dispose();
     });
     this.tracers.length = 0;
+    if (this.arrows) {
+      for (const a of this.arrows) { this.root.remove(a.mesh); a.mesh.geometry.dispose(); a.mesh.material.dispose(); }
+      this.arrows.length = 0;
+    }
   }
 }

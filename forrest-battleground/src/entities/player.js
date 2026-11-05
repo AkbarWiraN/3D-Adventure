@@ -119,9 +119,47 @@ export class Player {
     this.weaponMount = new THREE.Group();
     this.weaponMount.position.set(0, -armH + 0.06, 0.04);
     this.armR.add(this.weaponMount);
+    this._weaponMesh = null;   // mesh pedang/busur yang sedang dipegang
+    this._attackT = 0;         // progres animasi serang (0 = idle)
 
     // Skala sedikit lebih kecil untuk pemain perempuan (kosmetik saja)
     if (isF) this.group.scale.setScalar(0.94);
+  }
+
+  /** Tampilkan senjata yang dipegang (dipanggil saat inventory/slot berubah). */
+  setWeaponMesh(type) {
+    if (this._weaponMesh) {
+      this.weaponMount.remove(this._weaponMesh);
+      this._weaponMesh.geometry?.dispose();
+      this._weaponMesh.material?.dispose();
+      this._weaponMesh = null;
+    }
+    if (!type || type === 'unarmed' || type === 'arrows') return;
+    let m;
+    if (type === 'sword') {
+      m = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.72, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xc7cbd0, metalness: 0.55, roughness: 0.4 })
+      );
+      m.position.set(0, -0.28, 0.02);
+      m.rotation.z = 0.12;
+    } else { // bow
+      m = new THREE.Mesh(
+        new THREE.TorusGeometry(0.34, 0.03, 5, 10, Math.PI * 1.2),
+        new THREE.MeshStandardMaterial({ color: 0x9d642e })
+      );
+      m.position.set(0, -0.1, 0.02);
+      m.rotation.z = Math.PI / 2;
+    }
+    m.castShadow = true;
+    this._weaponMesh = m;
+    this.weaponMount.add(m);
+  }
+
+  /** Picu animasi serang (nebas pedang / lepas panah) — jalan walau tak kena musuh. */
+  playAttack(type) {
+    this._attackT = 1;
+    this._attackKind = type;
   }
 
   /** Posisikan di titik spawn (server-authoritative di multiplayer). */
@@ -214,7 +252,10 @@ export class Player {
     if (moving) this.animPhase += dt * rate;
 
     // Saat tiarap, pose kaki/lengan sudah di-set di update() — jangan ditimpa swing jalan.
-    if (this.prone) return;
+    if (this.prone) { this._tickAttack(dt); return; }
+
+    // Animasi serang MENANG atas swing jalan (lengan kanan).
+    if (this._attackT > 0) { this._tickAttack(dt); return; }
 
     const swing = moving ? Math.sin(this.animPhase) * (this.sprint ? 0.85 : 0.5) : 0;
     this.legL.rotation.x = swing;
@@ -234,6 +275,27 @@ export class Player {
   setAiming(on) {
     this.aiming = on;
     this.armR.rotation.x = on ? -1.45 : 0;
+  }
+
+  /** Animasi serang prosedural: pedang = tebasan horizontal, busur = tarik-lepas. */
+  _tickAttack(dt) {
+    if (this._attackT <= 0) return;
+    this._attackT = Math.max(0, this._attackT - dt * 3.2); // ~0.31 s per ayunan
+    const t = 1 - this._attackT; // 0 → 1 selama animasi
+    if (this._attackKind === 'bow') {
+      // Tarik (lengan ke belakang) lalu lepas cepat ke depan.
+      const pull = t < 0.45 ? t / 0.45 : 1;
+      const release = t < 0.45 ? 0 : (t - 0.45) / 0.55;
+      this.armR.rotation.x = -1.2 - pull * 0.5 + release * 1.4;
+      this.armR.rotation.z = -0.15 + release * 0.15;
+      if (this._attackT === 0) this.armR.rotation.z = 0;
+    } else {
+      // Pedang/tangan kosong: tebasan horizontal dari kanan ke kiri.
+      const swing = Math.sin(t * Math.PI); // naik lalu turun
+      this.armR.rotation.x = -1.5 * swing;
+      this.armR.rotation.z = -0.9 + t * 1.6; // sapuan ke kiri
+      if (this._attackT === 0) { this.armR.rotation.z = 0; }
+    }
   }
 
   takeDamage(amount, nowMs) {
