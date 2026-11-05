@@ -586,3 +586,9 @@ _(IN PROGRESS)_
 - Healthz: loopback 200 {"ok":true,"db":true}; publik api-be.bssn.biz.id/healthz 403 (loopback-only by design, bukan regresi).
 - Server suite 36/36 PASS (35.4 s); Unit FE 49/49 PASS; Prod-smoke produksi 14/14 PASS.
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Tanpa drift, tanpa perubahan kode.
+
+### Run cron 2026-11-05 malam #19 (verifikasi penuh)
+- Pra-cek bersih: forest-battleground + nginx active; fb-backup.timer & fb-disk-check.timer enabled; disk 38 GB free (44%).
+- Healthz sesuai desain: loopback 200 {"ok":true,"db":true}; publik 403 (loopback-only by design).
+- Verifikasi (PATH=/opt/node24/bin:$PATH): server suite 36/36 PASS (35.4 s); unit FE 49/49 PASS; prod-smoke 14/14 PASS (origin-deny, JWT, leaderboard, forest status, WS auth/join, forged-token 401, logout revoke).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
