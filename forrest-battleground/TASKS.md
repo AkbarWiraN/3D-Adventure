@@ -508,6 +508,35 @@ _(IN PROGRESS)_
   disk-check akan warning bila >500 MB).
 - Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
 
+### Catatan run 2026-11-05 (malam #13) — README produksi Fase 4 ditulis ulang lengkap
+- Pra-cek produksi bersih: forest-battleground + nginx active+enabled; fb-backup.timer
+  (next 03:17) + fb-disk-check.timer (next 04:03) terjadwal; guard publik 403 tanpa
+  Origin / 200 Origin sah; disk 38 GB free; load 0.08. Tanpa drift sesi paralel.
+- Gap yang ditutup: checklist Fase 4 [QA] "README deploy local/production, install
+  backend, DNS/TLS, GitHub Pages workflow, backups/restore/rollback, env examples,
+  migration instructions, UI guide" — README lama 47 baris masih berlabel
+  "Fase 2 work in progress" dan tidak punya bagian deploy sama sekali.
+- README.md baru (~170 baris, 7 seksi): dev lokal (npm ci/test/serve, backend QA,
+  gotcha PATH /opt/node24 vs Node 22 ERR_DLOPEN_FAILED), deploy produksi (Node 24,
+  env 0600, systemd nonroot MemoryMax=1500M, fb-backup + fb-disk-check timer, nginx
+  vhost :80→301/:443+WS Upgrade+HSTS, certbot, default_server 444), workflow Pages
+  (whitelist 5 entry + audit-dist + gerbang .env/sqlite/md), smoke produksi
+  prod-smoke.mjs 14/14, backup/restore/rollback (Online Backup API — bukan cp WAL,
+  drill <60 s, pointer OPS_CHECKLIST), tabel env lengkap (register rate default 5/15m,
+  ROOM_HARD_CAP 8 dengan alasan jujur cap 16 belum diaktifkan), REST v1 + WSS ringkas
+  (heartbeat 30s/10s, frame ≤16 KiB), UI guide desktop (keybind DIVERIFIKASI dari
+  src/input/input.js: Z prone toggle, G drop, T throw, 1/2 slot, RMB aim, M map, Esc
+  pause — BUKAN asumsi) & mobile (landscape-only, tombol SERANG/BIDIK/LONCAT/LEMPAR),
+  kebijakan kredensial, Three.js 0.180.0 vendor (REVISION dicek nyata).
+- Verifikasi silang sebelum commit: setiap keybind/tabel env/limit leaderboard
+  (clamp 10..50)/bodyLimit 16 KiB/REVISION three dicocokkan ke kode aktual;
+  URL Pages /3D-Adventure/forrest-battleground/ → 200, path tanpa prefix → 404.
+- Regresi hijau run ini: unit 49/49, server suite 36/36 (realtime 13/13 termasuk
+  heartbeat + logout revoke).
+- Checklist prompt.md Fase 4 [QA] README → [x] dengan bukti. Butir checklist Fase 4
+  yang bisa dikerjakan dari VPS kini seluruhnya [x]; sisa murni PENDING_MANUAL HP asli.
+- Butuh Keputusan tetap: 1 item (jendela sesi paralel — tidak ada insiden malam ini).
+
 ## PENDING_MANUAL (butuh HP asli)
 
 - [M] [QA] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless (4-8) tidak valid karena SwiftShader
