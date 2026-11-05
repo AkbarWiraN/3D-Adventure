@@ -12,6 +12,7 @@ export class Screens {
   constructor() {
     this.nodes = {
       title: el('screen-title'),
+      lobby: el('screen-lobby'),
       settings: el('screen-settings'),
       pause: el('screen-pause'),
       map: el('screen-map'),
@@ -128,6 +129,7 @@ export class Screens {
     if (returnTo) this.returnTo = returnTo;
     const map = {
       title: this.nodes.title,
+      lobby: this.nodes.lobby,
       settings: this.nodes.settings,
       pause: this.nodes.pause,
       map: this.nodes.map,
@@ -140,6 +142,7 @@ export class Screens {
   hide(name) {
     const map = {
       title: this.nodes.title,
+      lobby: this.nodes.lobby,
       settings: this.nodes.settings,
       pause: this.nodes.pause,
       map: this.nodes.map,
@@ -150,7 +153,7 @@ export class Screens {
   }
 
   hideAll() {
-    for (const k of ['title', 'settings', 'pause', 'map', 'loading', 'fatal']) this.hide(k);
+    for (const k of ['title', 'lobby', 'settings', 'pause', 'map', 'loading', 'fatal']) this.hide(k);
   }
 
   showSettings(returnTo) {
@@ -164,6 +167,8 @@ export class Screens {
     if (this.returnTo === 'pause') {
       this.hideAll();
       this.nodes.pause.classList.remove('hidden');
+    } else if (this.returnTo === 'lobby') {
+      this.show('lobby');
     } else {
       this.show('title');
       this.refreshOnlineNote();

@@ -160,11 +160,12 @@ async function main() {
   await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
   await ev(`document.getElementById('btn-login').click()`);
   await sleep(6000);
-  R.ui_auth_status = await ev(`document.getElementById('auth-status').textContent`);
-  R.ui_online_enabled = await ev(`document.getElementById('btn-online').disabled===false`);
+  // Login sukses → lobby bertab (greeting berisi username), tombol Online di Beranda.
+  R.ui_auth_status = await ev(`document.getElementById('lobby-greeting').textContent || document.getElementById('auth-status').textContent`);
+  R.ui_online_enabled = await ev(`document.getElementById('btn-lobby-online').disabled===false`);
 
   // mulai Online (buat WS ketiga dari tab ini → sesi onlineCount harus naik dulu)
-  await ev(`document.getElementById('btn-online').click()`);
+  await ev(`document.getElementById('btn-lobby-online').click()`);
   await sleep(9000);
   R.ui_hud_visible = await ev(`!document.getElementById('hud').classList.contains('hidden')`);
   R.ui_ws_state = await ev(`(()=>{const s=window.__fb.getSession();return s&&s.net?{joined:s.net.joined,authed:s.net.authed,url:s.net.url}:null})()`);
@@ -194,7 +195,7 @@ async function main() {
   need(R.online_before_ui === 0, `online sebelum UI = ${R.online_before_ui}`);
   need(R.ui_webgl === true, 'WebGL UI tidak aktif');
   need(R.ui_backend === BACKEND, `backendBase UI = ${R.ui_backend}`);
-  need(/Masuk sebagai/.test(R.ui_auth_status || ''), `UI login gagal: ${R.ui_auth_status}`);
+  need(/Masuk sebagai|Selamat datang/.test(R.ui_auth_status || ''), `UI login gagal: ${R.ui_auth_status}`);
   need(R.ui_online_enabled === true, 'tombol Online tidak aktif setelah login');
   need(R.ui_hud_visible === true, 'HUD online tidak muncul');
   need(R.ui_ws_state?.joined === true, `WS UI tidak join: ${JSON.stringify(R.ui_ws_state)}`);

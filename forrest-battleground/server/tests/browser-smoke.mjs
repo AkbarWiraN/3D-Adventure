@@ -123,7 +123,7 @@ async function main() {
   // exit → lobby + leak check
   await ev(`window.__fb.exitSolo()`);
   await sleep(800);
-  R.exit = await ev(`({session:window.__fb.getSession()===null,title:!document.getElementById('screen-title').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden'),listeners:(async()=>0)()})`);
+  R.exit = await ev(`({session:window.__fb.getSession()===null,title:!document.getElementById('screen-title').classList.contains('hidden')||!document.getElementById('screen-lobby').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden'),listeners:(async()=>0)()})`);
   R.busListeners = await ev(`(async()=>{const m=await import('/src/core/bus.js');return ['input:attack','input:look','ui:toggleMap'].map(e=>e+':'+m.countListeners(e))})()`);
   R.sceneChildren = await ev(`window.__fb.getSession()===null?'n/a':0`);
 
@@ -137,18 +137,31 @@ async function main() {
     R.authUser = user;
     await ev(`document.getElementById('auth-username').value='${user}'`);
     await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
+    // Mode daftar: klik tab Daftar dulu agar field karakter tampil (UI baru).
+    await ev(`document.getElementById('auth-mode-register').click()`);
     await ev(`document.getElementById('auth-character').value='female'`);
     // dialog konfirmasi server kustom (window.confirm) harus di-auto-accept di headless.
     await send('Page.enable');
     R.dialog = await ev(`(()=>{window.__dialogs=[];const o=window.confirm;window.confirm=(m)=>{window.__dialogs.push(m);return true};return 'patched'})()`);
     R.registerClick = await ev(`document.getElementById('btn-register').click(),'clicked'`);
-    await sleep(6000);
-    R.authStatus = await ev(`document.getElementById('auth-status').textContent`);
+    // Tunggu greeting lobby (hanya terisi setelah refresh() sukses) — lebih
+    // deterministik daripada sleep tetap untuk menyimpulkan register sukses.
+    for (let i = 0; i < 24; i++) {
+      await sleep(500);
+      const g = await ev(`document.getElementById('lobby-greeting').textContent`);
+      if (/Selamat datang,/.test(g || '')) break;
+    }
+    R.authStatus = await ev(`document.getElementById('lobby-greeting').textContent`);
     R.dialogs = await ev(`window.__dialogs`);
     R.authErr = await ev(`(()=>{try{return window.__lastAuthErr||null}catch{return null}})()`);
-    R.lobbyData = await ev(`document.getElementById('lobby-data').textContent`);
-    R.logoutVisible = await ev(`!document.getElementById('btn-logout').classList.contains('hidden')`);
-    R.soloAfterLogin = await ev(`document.getElementById('btn-solo').disabled===false`);
+    // Setelah register sukses UI pindah ke lobby bertab (screen-lobby).
+    R.lobbyData = await ev(`(()=>{
+      const g=document.getElementById('lobby-greeting');const lb=document.getElementById('lb-self');
+      const map=document.querySelector('.map-card');
+      return [g&&g.textContent, lb&&lb.textContent, map&&map.textContent].filter(Boolean).join(' | ');
+    })()`);
+    R.logoutVisible = await ev(`!document.getElementById('btn-account-logout').classList.contains('hidden')`);
+    R.soloAfterLogin = await ev(`document.getElementById('btn-lobby-solo').disabled===false`);
   }
   // ---------- Fase C: Online — HUD senjata/ammo, overlay kematian, enemy_map ----------
   // Butuh backend + satu klien WSS nyata sebagai lawan (biar snapshot/enemy_map terisi).
@@ -200,7 +213,7 @@ async function main() {
       foe.send(JSON.stringify({ t: 'join', room: 'forest' }));
       await new Promise((res) => { const t = setInterval(() => { if (foeInbox.some((m) => m.t === 'joined')) { clearInterval(t); res(); } }, 20); setTimeout(res, 5000); });
 
-      // UI: login sebagai userC → mulai Online.
+      // UI: login sebagai userC → lobby bertab → mulai Online dari Beranda.
       await ev(`localStorage.setItem('forest-battleground:settings:v1', JSON.stringify({backendBase:'${BACKEND}',quality:'low',sensitivity:1,invertY:false,showFps:false,lastCharacter:'female'}))`);
       await send('Page.navigate', { url: `${FRONT}?debug=1` });
       await sleep(3500);
@@ -209,9 +222,14 @@ async function main() {
       await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
       await ev(`document.getElementById('btn-login').click()`);
       await sleep(5000);
-      R.onlineC.loginStatus = await ev(`document.getElementById('auth-status').textContent`);
-      await ev(`document.getElementById('btn-online').click()`);
-      await sleep(8000);
+      R.onlineC.loginStatus = await ev(`document.getElementById('lobby-greeting').textContent`);
+      await ev(`document.getElementById('btn-lobby-online').click()`);
+      for (let i = 0; i < 32; i++) {
+        await sleep(500);
+        const ok = await ev(`(()=>{const s=window.__fb.getSession();return !!(s&&s.net&&s.net.sessionId)})()`);
+        if (ok) break;
+      }
+      await sleep(2500); // beri waktu snapshot + enemy_map pertama tiba
 
       // HUD senjata & ammo harus terbaca dari snapshot server (bukan combat lokal).
       R.onlineC.weapon = await ev(`document.getElementById('weapon-name').textContent`);
@@ -228,7 +246,7 @@ async function main() {
       // Kirim leave dari UI → count harus turun (konsisten dengan online-smoke).
       await ev(`window.__fb.exitSolo()`);
       await sleep(1500);
-      R.onlineC.exited = await ev(`({title:!document.getElementById('screen-title').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden')})`);
+      R.onlineC.exited = await ev(`({title:!document.getElementById('screen-title').classList.contains('hidden'),lobby:!document.getElementById('screen-lobby').classList.contains('hidden'),hudHidden:document.getElementById('hud').classList.contains('hidden')})`);
 
       foe.send(JSON.stringify({ t: 'leave', sessionId: foeId }));
       await sleep(500);
@@ -263,15 +281,15 @@ function verdict(R) {
   need(R.exit.session && R.exit.title && R.exit.hudHidden, 'exit tidak bersih');
   need((R.busListeners || []).every((l) => l.endsWith(':0')), 'listener bus bocor setelah exit');
   if (BACKEND) {
-    need(/Masuk sebagai/.test(R.authStatus || ''), `register/login gagal: ${R.authStatus}`);
-    need(/pemain 0\/8/.test(R.lobbyData || ''), 'online count salah');
-    need(R.logoutVisible === true, 'tombol keluar tidak muncul');
+    need(/Selamat datang,/.test(R.authStatus || ''), `register/login gagal: ${R.authStatus}`);
+    need(/Forest — Hutan Purba/.test(R.lobbyData || ''), `data lobby kosong: ${R.lobbyData}`);
+    need(R.logoutVisible === true, 'tombol keluar akun tidak muncul');
     need(R.soloAfterLogin === true, 'Solo tidak bisa setelah login');
-    need(R.onlineC?.loginStatus && /Masuk sebagai/.test(R.onlineC.loginStatus), `online login gagal: ${R.onlineC?.loginStatus}`);
+    need(R.onlineC?.loginStatus && /Selamat datang/.test(R.onlineC.loginStatus), `online login gagal: ${R.onlineC?.loginStatus}`);
     need(R.onlineC?.joined === true, 'UI tidak join room online');
     need(R.onlineC?.weapon === 'Tangan Kosong', `HUD senjata online salah: ${R.onlineC?.weapon}`);
     need(R.onlineC?.enemyMarkers === 1, `marker musuh di minimap: ${R.onlineC?.enemyMarkers}`);
-    need(R.onlineC?.exited?.title === true && R.onlineC?.exited?.hudHidden === true, 'exit online tidak bersih');
+    need(R.onlineC?.exited?.lobby === true && R.onlineC?.exited?.hudHidden === true, 'exit online tidak kembali ke lobby');
   }
   return fails;
 }

@@ -89,6 +89,8 @@ export function setQuality(q) {
   return CONFIG.resolvedTier;
 }
 
-export function isMobilePortrait() {
-  return window.matchMedia('(hover: none)').matches && window.innerHeight >= window.innerWidth;
+// Mobile dimainkan LANDSCAPE (permintaan pemilik, 5 Nov 2026).
+// Portrait di ponsel memunculkan rotate-hint (style.css), bukan mode main.
+export function isMobileLandscape() {
+  return window.matchMedia('(hover: none)').matches && window.innerWidth > window.innerHeight;
 }

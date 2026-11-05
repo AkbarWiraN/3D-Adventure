@@ -1,6 +1,6 @@
-// mobile-emu-check.mjs — apakah kontrol mobile portrait BENAR-BENAR berfungsi?
-// Klaim TASKS.md Fase 1 #20 & Fase 2 #6: "emulasi mobile portrait", "multitouch tested".
-// Uji nyata: CDP device metrics (390x844, DPR 3) + touch emulation + joystick drag.
+// mobile-emu-check.mjs — apakah kontrol mobile landscape BENAR-BENAR berfungsi?
+// Mobile WAJIB landscape (permintaan pemilik 5 Nov 2026): portrait memunculkan
+// rotate-hint; uji ini memakai viewport landscape 844x390 (iPhone-14-ish, DPR 3).
 import { spawn } from 'node:child_process';
 import { WebSocket } from 'ws';
 
@@ -33,8 +33,8 @@ async function main() {
 
   await send('Runtime.enable');
   await send('Page.enable');
-  // Emulasi HP portrait nyata: iPhone-14-ish 390x844 DPR3, touch wajib.
-  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  // Emulasi HP LANDSCAPE: 844x390 DPR3, touch wajib.
+  await send('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 3, mobile: true });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
 
   const R = {};
@@ -45,7 +45,16 @@ async function main() {
   await sleep(5000);
   R.mobileControlsVisible = await ev(`!document.getElementById('mobile-controls').classList.contains('hidden')`);
   R.desktopHintHidden = await ev(`document.getElementById('desktop-hint').classList.contains('hidden')`);
+  // Landscape → rotate-hint harus TERSEMBUNYI.
   R.rotateHintDisplay = await ev(`getComputedStyle(document.getElementById('rotate-hint')).display`);
+
+  // Portrait → rotate-hint harus MUNCUL (blokir main dalam posisi tegak).
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  await sleep(400);
+  R.rotateHintInPortrait = await ev(`getComputedStyle(document.getElementById('rotate-hint')).display`);
+  await send('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 3, mobile: true });
+  await sleep(400);
+  R.rotateHintBackLandscape = await ev(`getComputedStyle(document.getElementById('rotate-hint')).display`);
 
   // Joystick: pointer events SINTETIS dengan pointerType touch (meniru sentuh nyata).
   R.joy = await ev(`(()=>{const z=document.getElementById('joystick-zone');const r=z.getBoundingClientRect();
@@ -83,6 +92,10 @@ async function main() {
   if (R.mobileControlsVisible && !(R.joy?.moveX || R.joy?.moveZ)) fails.push('joystick tidak merespons sentuh');
   if (!(R.moved > 0.05)) fails.push('joystick tidak menggerakkan pemain (moved=' + R.moved + ')');
   if (!R.multiTouch?.joyActive) fails.push('joystick+look simultan gagal');
+  // Kebijakan orientasi: landscape bebas, portrait diblokir rotate-hint.
+  if (R.rotateHintDisplay !== 'none') fails.push('rotate-hint muncul di landscape: ' + R.rotateHintDisplay);
+  if (R.rotateHintInPortrait === 'none') fails.push('rotate-hint TIDAK muncul di portrait');
+  if (R.rotateHintBackLandscape !== 'none') fails.push('rotate-hint tidak hilang saat kembali landscape');
   console.log('VERDICT:', fails.length ? 'FAIL' : 'PASS');
   for (const f of fails) console.log('  ✗', f);
   if (fails.length) process.exitCode = 1;

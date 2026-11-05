@@ -12,7 +12,7 @@ import { getToken, getUser } from './network/rest.js';
 
 const canvas = document.getElementById('gl');
 const screens = new Screens();
-const lobby = new Lobby();
+const lobby = new Lobby(screens);
 
 // Sesi aktif (null saat di lobby)
 let session = null;
@@ -31,14 +31,16 @@ window.addEventListener('unhandledrejection', (e) => {
 function boot() {
   screens.showLoading(0.35, 'Menyiapkan mesin 3D');
   screens.hideLoading();
-  screens.show('title');
-  screens.refreshOnlineNote();
 
   // Fase 3: Online aktif HANYA setelah login (butuh token untuk auth-first WSS).
-  const btnOnline = document.getElementById('btn-online');
-  if (btnOnline) {
-    btnOnline.disabled = !getToken();
-    btnOnline.title = getToken() ? 'Masuk room forest (WSS otoritatif)' : 'Login dahulu untuk main online';
+  lobby._syncOnlineButtons();
+  // Token tersimpan? Langsung ke lobby dengan header tab.
+  if (getToken() && getUser()) {
+    screens.show('lobby', { returnTo: 'lobby' });
+    lobby.refresh();
+  } else {
+    screens.show('title');
+    screens.refreshOnlineNote();
   }
   started = true;
 }
@@ -87,8 +89,14 @@ function exitSolo() {
     try { session.dispose(); } catch (err) { console.error('[dispose]', err); }
     session = null;
   }
-  screens.show('title');
-  screens.refreshOnlineNote();
+  // "Keluar ke Lobby": kembali ke lobby bertab bila login, judul bila tamu.
+  if (getToken() && getUser()) {
+    screens.show('lobby', { returnTo: 'lobby' });
+    lobby.refresh();
+  } else {
+    screens.show('title');
+    screens.refreshOnlineNote();
+  }
   emit('game:exited');
 }
 
@@ -107,6 +115,8 @@ function pauseGame() {
 // bus events (didaftarkan via import emit)
 on('ui:startSolo', startSolo);
 on('ui:startOnline', () => startSolo('online'));
+// btn-online di layar judul: blokir tamu; btn-lobby-online di-handle Lobby
+// (emit ui:startOnline) — listener ganda akan membuat DUA OnlineSession.
 document.getElementById('btn-online')?.addEventListener('click', () => {
   if (!getToken() || !getUser()) {
     screens.refreshOnlineNote('Login dahulu untuk main online.');

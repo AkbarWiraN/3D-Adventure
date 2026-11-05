@@ -32,12 +32,15 @@
       <p class="dim small">Hutan purba seluas 1 km². Cari perlengkapan, bertahan hidup, jangan mati.</p>
 
       <div id="account-panel" class="account-panel">
+        <div id="auth-mode" class="auth-mode" role="tablist" aria-label="Masuk atau daftar">
+          <button id="auth-mode-login" class="auth-tab active" role="tab">Masuk</button>
+          <button id="auth-mode-register" class="auth-tab" role="tab">Daftar</button>
+        </div>
         <label class="field"><span>Username</span><input id="auth-username" maxlength="20" autocomplete="username"></label>
         <label class="field"><span>Password</span><input id="auth-password" type="password" maxlength="128" autocomplete="current-password"></label>
-        <div class="row"><button id="btn-register" class="btn">Daftar</button><button id="btn-login" class="btn primary">Masuk</button><button id="btn-logout" class="btn hidden">Keluar</button></div>
+        <label id="auth-character-field" class="field hidden"><span>Karakter</span><select id="auth-character"><option value="male">Laki-laki</option><option value="female">Perempuan</option></select></label>
+        <div class="row"><button id="btn-register" class="btn hidden">Daftar</button><button id="btn-login" class="btn primary">Masuk</button><button id="btn-account" class="btn hidden">Keluar Akun</button></div>
         <p id="auth-status" class="dim tiny" aria-live="polite">Login diperlukan untuk melihat lobi.</p>
-        <label class="field"><span>Karakter</span><select id="auth-character"><option value="male">Laki-laki</option><option value="female">Perempuan</option></select></label>
-        <div id="lobby-data" class="dim tiny"></div>
       </div>
       <div class="menu">
         <button id="btn-solo" class="btn primary">Main Solo</button>
@@ -45,6 +48,70 @@
         <button id="btn-settings" class="btn">Pengaturan</button>
       </div>
       <p id="online-note" class="dim tiny">Online belum tersedia — akan aktif di Fase 3.</p>
+    </div>
+  </div>
+
+  <!-- ===================== Lobby (setelah login) ===================== -->
+  <div id="screen-lobby" class="overlay hidden">
+    <div class="panel full lobby-panel">
+      <header class="lobby-header">
+        <nav class="lobby-nav" role="tablist" aria-label="Menu lobby">
+          <button class="lobby-tab active" data-tab="beranda" role="tab">Beranda</button>
+          <button class="lobby-tab" data-tab="karakter" role="tab">Karakter</button>
+          <button class="lobby-tab" data-tab="map" role="tab">Map</button>
+          <button class="lobby-tab" data-tab="leaderboard" role="tab">Leaderboard</button>
+          <button class="lobby-tab" data-tab="akun" role="tab">Pengaturan Akun</button>
+        </nav>
+        <span id="lobby-user" class="dim small"></span>
+      </header>
+
+      <section class="lobby-page" data-page="beranda">
+        <h2 id="lobby-greeting">Selamat datang</h2>
+        <p class="dim small">Pilih mode bermain. Online membutuhkan koneksi ke backend.</p>
+        <div class="menu">
+          <button id="btn-lobby-solo" class="btn primary">Main Solo</button>
+          <button id="btn-lobby-online" class="btn">Main Online</button>
+        </div>
+        <p id="lobby-note" class="dim tiny"></p>
+      </section>
+
+      <section class="lobby-page hidden" data-page="karakter">
+        <h3>Pilih Karakter</h3>
+        <div class="char-cards">
+          <button class="char-card" data-char="male">
+            <span class="char-avatar" aria-hidden="true">&#x1F9D4;</span>
+            <b>Laki-laki</b>
+            <span class="dim tiny">Kemampuan identik — hanya tampilan.</span>
+          </button>
+          <button class="char-card" data-char="female">
+            <span class="char-avatar" aria-hidden="true">&#x1F469;</span>
+            <b>Perempuan</b>
+            <span class="dim tiny">Kemampuan identik — hanya tampilan.</span>
+          </button>
+        </div>
+        <p id="char-status" class="dim tiny" aria-live="polite"></p>
+      </section>
+
+      <section class="lobby-page hidden" data-page="map">
+        <h3>Map</h3>
+        <div id="map-list" class="map-list"></div>
+      </section>
+
+      <section class="lobby-page hidden" data-page="leaderboard">
+        <h3>Leaderboard PvP</h3>
+        <p id="lb-self" class="dim small"></p>
+        <ol id="lb-list" class="lb-list"></ol>
+        <p id="lb-empty" class="dim tiny hidden">Belum ada data PvP. Main Online untuk mengisi papan.</p>
+      </section>
+
+      <section class="lobby-page hidden" data-page="akun">
+        <h3>Pengaturan Akun</h3>
+        <div id="account-info" class="account-info"></div>
+        <div class="menu">
+          <button id="btn-lobby-gamesettings" class="btn">Pengaturan Game</button>
+          <button id="btn-account-logout" class="btn danger">Keluar Akun</button>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -190,11 +257,12 @@
     </div>
   </div>
 
-  <!-- Mobile wajib portrait (prompt.md §3.2) — minta user memutar perangkat -->
+  <!-- Mobile wajib LANDSCAPE (permintaan pemilik, 5 Nov 2026 — menggantikan
+       aturan portrait pada prompt.md §3.2): minta user memiringkan perangkat -->
   <div id="rotate-hint">
     <div>
-      <h3>Putar Perangkat ke Tegak</h3>
-      <p class="dim small">Game ini dimainkan dalam mode portrait di ponsel.</p>
+      <h3>Miringkan Perangkat ke Landscape</h3>
+      <p class="dim small">Game ini dimainkan dalam mode landscape (miring) di ponsel.</p>
     </div>
   </div>
 </div>

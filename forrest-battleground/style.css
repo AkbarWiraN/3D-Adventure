@@ -198,6 +198,74 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 #bigmap { display: block; width: 100%; height: auto; max-height: 62vh; background: #0c0a08; border: 1px solid var(--line); border-radius: 9px; touch-action: none; cursor: grab; }
 #bigmap:active { cursor: grabbing; }
 
+/* --------------------------------------------------- auth masuk/daftar */
+.auth-mode {
+  display: flex; gap: 0; margin-bottom: 14px;
+  border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
+}
+.auth-tab {
+  flex: 1; appearance: none; cursor: pointer; font-family: inherit;
+  background: transparent; color: var(--dim); border: 0;
+  padding: 10px 0; font-size: .95rem; font-weight: 600;
+  transition: background .14s, color .14s;
+}
+.auth-tab.active { background: var(--accent); color: #1a1209; }
+.auth-tab:not(.active):hover { background: #241b15; color: var(--text); }
+
+.field input:not([type=range]):not([type=checkbox]), .field select {
+  width: 100%; padding: 10px; background: #191310; color: var(--text);
+  border: 1px solid var(--line); border-radius: 7px; font-size: .95rem; font-family: inherit;
+}
+.field input:focus, .field select:focus { outline: 2px solid rgba(217, 132, 63, .55); outline-offset: 1px; border-color: var(--accent); }
+
+/* --------------------------------------------------------------- lobby */
+.lobby-panel { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.lobby-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: rgba(12, 9, 7, .5); flex-wrap: wrap;
+}
+.lobby-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.lobby-tab {
+  appearance: none; cursor: pointer; font-family: inherit;
+  background: transparent; color: var(--dim); border: 1px solid transparent;
+  border-radius: 8px; padding: 8px 13px; font-size: .9rem; font-weight: 600;
+  min-height: 40px; transition: background .14s, color .14s, border-color .14s;
+}
+.lobby-tab:hover { color: var(--text); background: #241b15; }
+.lobby-tab.active { color: var(--accent); border-color: var(--line); background: #241b15; }
+.lobby-page { padding: 18px 20px 20px; overflow-y: auto; }
+
+/* Kartu karakter */
+.char-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 12px 0; }
+.char-card {
+  appearance: none; cursor: pointer; font-family: inherit; text-align: center;
+  background: #191310; color: var(--text); border: 2px solid var(--line);
+  border-radius: 12px; padding: 18px 14px; display: flex; flex-direction: column; gap: 6px;
+  transition: border-color .14s, transform .08s;
+}
+.char-card:hover { border-color: #4c3a2c; transform: translateY(-1px); }
+.char-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(217, 132, 63, .4); }
+.char-avatar { font-size: 2.2rem; line-height: 1; }
+
+/* Kartu map */
+.map-list { display: grid; gap: 10px; margin-top: 10px; }
+.map-card {
+  background: #191310; border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+}
+
+/* Leaderboard */
+.lb-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.lb-list li {
+  display: flex; gap: 10px; align-items: baseline;
+  background: #191310; border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 12px; font-size: .92rem;
+}
+.lb-rank { color: var(--accent); font-weight: 700; min-width: 30px; }
+
+.account-info { margin-bottom: 12px; }
+
 /* ------------------------------------------------ kontrol mobile portrait */
 #mobile-controls { position: absolute; inset: 0; pointer-events: none; }
 #mobile-controls > * { pointer-events: auto; }
@@ -238,23 +306,24 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .mbtn.tiny { width: 44px; height: 44px; font-size: .6rem; border-radius: 10px; }
 
 /* --------------------------------------------------------- responsif */
-/* Mobile portrait: sembunyikan hint desktop, posisikan HUD aman */
-@media (max-width: 820px) and (orientation: portrait) {
+/* Mobile landscape: HUD lebih rapat; desktop hint disembunyikan di layar sentuh */
+@media (max-width: 980px) and (orientation: landscape) and (hover: none) {
   #minimap-wrap { width: 108px; height: 108px; }
-  #status-cluster { min-width: 150px; bottom: calc(190px + var(--safe-b)); left: calc(10px + var(--safe-l)); }
+  #status-cluster { min-width: 150px; }
   #desktop-hint { display: none !important; }
-  #prompt { bottom: 34%; }
-  .panel { padding: 16px; }
+  #prompt { bottom: 30%; }
+  .panel { padding: 14px; }
+  .panel.full { max-height: calc(100vh - 16px); overflow-y: auto; }
 }
 
-/* Desktop / landscape: kontrol sentuh tidak muncul */
+/* Desktop / pointer halus: kontrol sentuh tidak muncul */
 @media (hover: hover) and (pointer: fine) {
   #mobile-controls { display: none !important; }
 }
 
-/* Rotate hint untuk mobile landscape (spesifikasi: mobile WAJIB portrait) */
+/* Rotate hint untuk mobile PORTRAIT (permintaan pemilik: mobile WAJIB landscape) */
 #rotate-hint { position: absolute; inset: 0; display: none; place-items: center; background: var(--bg); z-index: 40; text-align: center; padding: 24px; }
-@media (max-width: 900px) and (orientation: landscape) and (hover: none) {
+@media (max-width: 980px) and (orientation: portrait) and (hover: none) {
   #rotate-hint { display: grid !important; }
 }
 

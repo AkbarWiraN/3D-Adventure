@@ -139,6 +139,22 @@ SwiftShader bukan metrik perangkat.
 ## FASE 4 — Hardening, optimasi VPS, deploy GitHub Pages + Tencent, uji akhir
 _(IN PROGRESS)_
 
+- [x] [FE] Lobby bertab pasca-login (Beranda/Karakter/Map/Leaderboard/Pengaturan Akun) +
+  mobile landscape-only + rotate-hint portrait
+  Bukti NYATA (5 Nov 2026, browser-smoke terhadap backend QA lokal :3100):
+  `browser-smoke.mjs` VERDICT PASS — register → greeting "Selamat datang, qa_xxx",
+  map card "Forest — Hutan Purba · pemain 0/8", peringkat diri, tombol Keluar Akun;
+  login ulang → Main Online → WSS joined, HUD senjata "Tangan Kosong", 1 marker
+  musuh anonim di minimap, exit kembali ke lobby (bukan judul).
+  `mobile-emu-check.mjs` VERDICT PASS viewport LANDSCAPE 844x390 DPR 3 (joystick +
+  drag-look multitouch berfungsi; yawOffset berubah). Portrait ponsel kini memunculkan
+  rotate-hint (permintaan pemilik: mobile dimainkan landscape).
+  `online-smoke.mjs` PASS, `leak-20x-check.mjs` PASS, unit 49/49, backend 32/32,
+  realtime 9/9, build:pages 37 file 2.09 MB audit lolos.
+  BUG NYATA DIPERBAIKI: listener dobel pada `btn-lobby-online` (Lobby emit +
+  main.js listener langsung) membuat DUA OnlineSession sekali klik → UI tak pernah
+  join benar. Fix: main.js hanya memasang listener `btn-online` (judul); tombol
+  lobby murni lewat bus `ui:startOnline`.
 - [x] [Frontend] Performance 15m chunk load/loot/respawn/exit/rejoin tanpa kebocoran DOM/GPU
   Bukti: `leak-20x-check.mjs` VERDICT PASS — 20× masuk-keluar Solo: sesi null, listener bus
   0, scene graph identik (368 obj/232 geo/59 mat/38 loot/4 bot/21 chunk), **tekstur GPU stabil
