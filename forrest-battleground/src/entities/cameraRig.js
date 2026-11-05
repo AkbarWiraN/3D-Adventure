@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { terrainHeight } from '../shared/terrain.js';
+import { clampCameraAgainstColliders } from '../shared/movement.js';
 
 export class CameraRig {
   constructor(camera, colliderGrid = null) {
@@ -86,7 +87,18 @@ export class CameraRig {
       camZ += rightZ * shoulder;
     }
 
-    // Camera collision: jangan biarkan kamera masuk tanah / dinding.
+    // Camera collision (dinding/batu) — logika bersama di src/shared/movement.js.
+    const cc = clampCameraAgainstColliders(this.grid, focusX, focusZ, camX, camZ);
+    if (cc.hit) {
+      const sx = (cc.x - focusX) / (camX - focusX || 1);
+      const sz = (cc.z - focusZ) / (camZ - focusZ || 1);
+      const k = Math.min(sx, sz);
+      camX = focusX + (camX - focusX) * k;
+      camY = focusY + (camY - focusY) * k;
+      camZ = focusZ + (camZ - focusZ) * k;
+    }
+
+    // Camera collision: jangan biarkan kamera masuk tanah.
     const minY = terrainHeight(camX, camZ) + 0.55;
     if (camY < minY) camY = minY;
 

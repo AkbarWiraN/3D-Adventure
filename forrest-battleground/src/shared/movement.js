@@ -172,3 +172,46 @@ export function validateStep(from, to, dtSec, state = {}) {
   if (d > maxD + 0.001) return { ok: false, reason: 'TOO_FAR', distance: d, max: maxD };
   return { ok: true };
 }
+
+/**
+ * Mundurkan kamera bila garis focus→target menembus collider.
+ * Murni (tanpa three.js) supaya bisa diuji dan dipakai server bila perlu.
+ * Ponytail: 6 sampel garis lurus, cukup untuk collider kotak sejumlah ini;
+ * naikkan SAMPLES kalau collider tipis/berputar mulai tertembus.
+ */
+export function clampCameraAgainstColliders(grid, focusX, focusZ, camX, camZ, radius = 0.28, samples = 6) {
+  if (!grid) return { x: camX, z: camZ, hit: false };
+  const blockedAt = (x, z) => nearbyColliders(grid, x, z, radius).some((c) => circleVsObb(x, z, radius, c));
+  // Cari t TERBESAR yang bebas: kamera sedekat mungkin dengan target tanpa masuk collider.
+  // Kalau fokus sendiri berada di dalam collider (mis. spawn di dalam batu), t=0 juga
+  // terhalang — mundur perlahan sampai benar-benar bebas, jangan berhenti di titik
+  // yang masih di dalam (bug lama: safe 0.25 bisa masih dalam collider).
+  // t=1 (titik kamera target) bebas? Kalau ya, tak ada clamp sama sekali.
+  if (!blockedAt(camX, camZ)) return { x: camX, z: camZ, hit: false };
+  // Cari t terkecil yang BEBAS mulai dari fokus ke arah kamera.
+  let freeT = null;
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const sx = focusX + (camX - focusX) * t;
+    const sz = focusZ + (camZ - focusZ) * t;
+    if (!blockedAt(sx, sz)) { freeT = t; break; }
+  }
+  if (freeT === null) {
+    // Sepanjang garis sempit terhalang (focus di dalam collider): tarik kamera ke
+    // titik bebas terdekat di sekitar fokus (cari arah radial keluar dari collider).
+    for (let r = radius + 0.05; r <= 3; r += 0.15) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+        const sx = focusX + Math.cos(a) * r;
+        const sz = focusZ + Math.sin(a) * r;
+        if (!blockedAt(sx, sz)) return { x: sx, z: sz, hit: true };
+      }
+    }
+    // Paling parah: tetap di fokus (lebih baik daripada kamera di dalam batu).
+    return { x: focusX, z: focusZ, hit: true };
+  }
+  return {
+    x: focusX + (camX - focusX) * freeT,
+    z: focusZ + (camZ - focusZ) * freeT,
+    hit: true,
+  };
+}

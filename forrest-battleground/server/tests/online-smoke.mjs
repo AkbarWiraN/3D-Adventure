@@ -9,10 +9,11 @@ const CHROME = process.env.CHROME_BIN || '/usr/bin/google-chrome';
 const FRONT = process.env.FRONT_URL || 'http://127.0.0.1:8080/';
 const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:3100';
 
+const PORT = Number(process.env.CDP_PORT || (9300 + Math.floor(Math.random() * 400)));
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-sandbox', '--disable-gpu',
   '--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader',
-  '--window-size=900,1400', '--remote-debugging-port=9444', 'about:blank',
+  '--window-size=900,1400', `--remote-debugging-port=${PORT}`, 'about:blank',
 ], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -110,7 +111,7 @@ async function main() {
   // --- 3. browser: UI online nyata (login → lobby → start Online → exit)
   let list = null;
   for (let i = 0; i < 60 && !list; i++) {
-    try { list = (await (await fetch('http://127.0.0.1:9444/json/list')).json()).filter((t) => t.type === 'page'); } catch { /* retry */ }
+    try { list = (await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()).filter((t) => t.type === 'page'); } catch { /* retry */ }
     if (!list?.length) await sleep(250);
   }
   const dws = new WebSocket(list[0].webSocketDebuggerUrl);

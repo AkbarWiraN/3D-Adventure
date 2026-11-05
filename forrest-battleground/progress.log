@@ -234,3 +234,53 @@ DEPENDENSI:
   server/package.json → versi di-PIN eksak (tanpa ^): @fastify/cors 11.0.1,
   @fastify/websocket 11.2.0, argon2 0.44.0, better-sqlite3 12.4.1, fastify 5.6.2.
   package-lock.json v3, 106 paket, tersinkron.
+
+────────────────────────────────────────────────────────
+[2026-11-05 08:50 WIB] FASE 4 — BUG GPU LEAK NYATA DITEMUKAN & DIPERBAIKI (A-06)
+
+GEJALA: leak-20x-check.mjs VERDICT FAIL "heap naik 3.9MB→6.7MB".
+DIAGNOSIS BERTAHAP (bukan tebakan):
+  leak-diag.mjs   → scene graph IDENTIK tiap sesi (368 obj/232 geo/59 mat),
+                    TAPI renderer.info.memory.textures naik 1→2→3→4 per sesi.
+                    Geometri/material tidak bocor → yang bocor TEXTURE GPU.
+  leak-trace.mjs  → HeapProfiler sampling: top = WebGLTextures/WebGLProgram/
+                    WebGLUniforms/IDLE_EXTERNAL (eksternal, bukan heap JS).
+  leak-curve.mjs  → 40 sesi: heap slope 98k→74k→25k→0 KB per 10 sesi = PLATEAU,
+                    bukan bocor linear. Jadi threshold FAIL lama memang salah (A-07).
+
+AKAR MASALAH: src/world/lighting.js membuat DirectionalLight dengan
+sun.castShadow=true (tier medium+). three.js membuat light.shadow.map =
+WebGLRenderTarget(1024²) SAAT RENDER PERTAMA, dan TIDAK pernah melepasnya
+otomatis. session.dispose() hanya scene.remove(lampu) — render target GPU
+tetap hidup. Satu sesi = satu tekstur 1024² RGB + depth = bocor nyata.
+
+FIX (src/core/session.js):
+  for (const l of [sun, hemi, amb]) {
+    if (l?.shadow?.map) { l.shadow.map.dispose(); l.shadow.map = null; }
+    this.scene.remove(l);
+  }
+  Catatan: hemi/amb tidak punya shadow, guard opsional tapi konsisten.
+
+UJI INVARIANT BARU (server/tests/leak-20x-check.mjs):
+  - tex (info.memory.textures) harus IDENTIK antar sesi; naik = FAIL eksplisit.
+  - shadowTarget harus sama.
+  - heap: ukur SLOPE sesi 10→20 (>100 KB = bocor linear), bukan base→akhir.
+
+VERIFIKASI NYATA (3 run, konsisten):
+  run1: tex 1/1/1, heap slope < 100 KB → VERDICT PASS
+  run2: tex 1/1/1 → VERDICT PASS
+  run3: tex 1/1/1, shadowTarget true → VERDICT PASS
+  Sebelum fix: textures 1→2→3→4 (terukur, bukan klaim).
+
+BONUS FIX: rate limit register QA backend (5/15m) menghabiskan kuota smoke
+test yang butuh 3 akun/run → REGISTER_RATE_MAX env override (QA 60, PRODUKSI
+tetap 5 — diverifikasi: register ke api-be langsung 429).
+
+BROWSER SMOKE PENUH (backend QA nyata 3100, DB bersih):
+  VERDICT PASS — solo loot POI→5 hit 100→0→kill feed→death overlay→respawn 3s
+  HP100 tangan kosong→exit bersih (listener bus 0); register→login→lobby
+  onlineCount 0/8 authoritative→leaderboard empty-state→online join→marker
+  musuh 1→exit bersih.
+
+TEST SUITE: unit 42/42; backend 23/23 (http+security+auth); realtime 9/9;
+build:pages 37 file 2.08 MB audit lolos.

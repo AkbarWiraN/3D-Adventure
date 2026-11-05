@@ -12,18 +12,21 @@ import path from 'node:path';
 const CHROME = process.env.CHROME_BIN || '/usr/bin/google-chrome';
 const FRONT = process.env.FRONT_URL || 'http://127.0.0.1:8099/';
 const BACKEND = process.env.BACKEND_URL || '';
+// Port debug ACAK per run: Chrome zombie dari run sebelumnya sempat memakai port
+// tetap dan membuat run baru menyambung ke tab basi (kegagalan palsu).
+const PORT = Number(process.env.CDP_PORT || (9300 + Math.floor(Math.random() * 400)));
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-sandbox', '--disable-gpu',
   '--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader',
-  '--window-size=900,1400', '--remote-debugging-port=9333', 'about:blank',
+  '--window-size=900,1400', `--remote-debugging-port=${PORT}`, 'about:blank',
 ], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
   let list = null;
   for (let i = 0; i < 60 && !list; i++) {
-    try { list = (await (await fetch('http://127.0.0.1:9333/json/list')).json()).filter((t) => t.type === 'page'); } catch {}
+    try { list = (await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()).filter((t) => t.type === 'page'); } catch {}
     if (!list?.length) await sleep(250);
   }
   const ws = new WebSocket(list[0].webSocketDebuggerUrl);

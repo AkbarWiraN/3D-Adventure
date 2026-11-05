@@ -13,6 +13,7 @@ function std(color, opts = {}) {
     metalness: opts.metalness ?? 0,
     flatShading: opts.flat ?? true,
     side: opts.side ?? THREE.FrontSide,
+    vertexColors: opts.vertexColors ?? false,
   });
   m.name = opts.name || 'shared';
   return m;
@@ -24,6 +25,8 @@ export function getMaterials() {
   cache = {
     // ground / jalan
     grass: std(0x4a6b3a, { roughness: 1, name: 'grass' }),
+    // Terrain chunk: vertexColors agar jalan setapak bisa diwarnai tanpa mesh tambahan.
+    terrain: std(0xffffff, { roughness: 1, vertexColors: true, name: 'terrain' }),
     dirt: std(0x6b5740, { roughness: 1, name: 'dirt' }),
     path: std(0x7a6549, { roughness: 1, name: 'path' }),
     rock: std(0x6e6a63, { roughness: .95, name: 'rock' }),
@@ -31,6 +34,7 @@ export function getMaterials() {
     // vegetasi
     bark: std(0x4a3826, { roughness: 1, name: 'bark' }),
     barkLight: std(0x6b5238, { roughness: 1, name: 'barkLight' }),
+    barkDark: std(0x35291c, { roughness: 1, name: 'barkDark' }),
     leafDark: std(0x2f4a26, { roughness: 1, name: 'leafDark' }),
     leafMid: std(0x3d6130, { roughness: 1, name: 'leafMid' }),
     leafLight: std(0x4e7a3c, { roughness: 1, name: 'leafLight' }),

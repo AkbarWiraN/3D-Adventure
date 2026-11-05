@@ -137,7 +137,34 @@ notch, RTT/CPS produksi lintas jaringan, deploy Fase 4. Metrik browser
 SwiftShader bukan metrik perangkat.
 
 ## FASE 4 — Hardening, optimasi VPS, deploy GitHub Pages + Tencent, uji akhir
-_(belum dimulai)_
+_(IN PROGRESS)_
+
+- [x] [Frontend] Performance 15m chunk load/loot/respawn/exit/rejoin tanpa kebocoran DOM/GPU
+  Bukti: `leak-20x-check.mjs` VERDICT PASS — 20× masuk-keluar Solo: sesi null, listener bus
+  0, scene graph identik (368 obj/232 geo/59 mat/38 loot/4 bot/21 chunk), **tekstur GPU stabil
+  `tex:1`** (sebelum fix bocor 1→2→3→4), heap slope 10→20 sesi < 100 KB.
+  `leak-curve.mjs` 40 sesi: delta 98k→74k→25k→0 KB = plateau, bukan bocor linear.
+  BUG NYATA DIPERBAIKI: `light.shadow.map` (WebGLRenderTarget 1024²) tidak pernah di-dispose
+  oleh three.js → +1 tekstur GPU per sesi; kini di-dispose di `session.dispose()`.
+  BUG NYATA DIPERBAIKI #2: threshold uji lama (heap base→akhir >1.6×) salah — V8 heap growth
+  + cache three.js bukan bocor; diganti ukur slope antar sesi.
+- [x] [Backend] Argon2id cost tuned untuk 2vCPU + rate limit auth (produksi 5 register/15m/IP,
+  QA backend override env `REGISTER_RATE_MAX`); brute-force burst aman
+  Bukti: `auth.test.js` lulus; register SUKSES kuota hanya naik via `rateCommit()`; register
+  gagal (username dipakai/password lemah) TIDAK menghabiskan kuota (bug Fase 3 sudah fix).
+  Produksi tetap ketat: `curl register ke api-be` → 429 setelah 5 akun.
+- [ ] [Backend] Load test 2→4→8 WS client; evaluasi cap 8, opsional 16 hanya jika CPU <70%,
+  1 GB headroom, tick p95 ≤50 ms, koneksi stabil
+  Bukti awal ada (load-stage.mjs PASS 2/4/8: tick 19.8-19.9 Hz, snapshot p95 102-103 ms,
+  RSS 151→196 MB, CPU 1.6-2.5%) tapi klien+server satu proses → angka = batas atas.
+  Perlu uji 8→16 sebelum cap boleh naik.
+- [ ] [Ops] SQLite online backup API script/schedule WAL-safe, retensi + rotation, restoration
+  drill; alarm disk <10 GB
+- [ ] [Security] Audit anti-cheat WSS lanjutan (frame oversized, seq replay, hp/damage palsu,
+  forged inventory/kill, koordinat negatif/NaN) — sebagian sudah di `realtime.test.js` (9/9)
+- [ ] [Ops] systemd + nginx + TLS sudah operasional (dari Fase 1); verifikasi cert renewal + logrotate
+- [ ] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
+- [ ] [QA] Real laptop + HP portrait lintas jaringan: PvP 5 hit, leaderboard, exit/rejoin — PENDING_MANUAL
 
 ---
 

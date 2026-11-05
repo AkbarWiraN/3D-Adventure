@@ -38,7 +38,7 @@ const TIERS = {
     nametags: false,
   },
   high: {
-    pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+    pixelRatio: Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, 2),
     shadow: true,
     shadowMapSize: 2048,
     viewDistance: 380,

@@ -8,7 +8,12 @@ import { createUser, findByCanonical, getPublicById, toPublicUser } from '../../
 import { take as rateTake, check as rateCheck, commit as rateCommit } from '../../security/rateLimit.js';
 
 // Batas laju (prompt.md §4.6). Ketat untuk register, sedang untuk login.
-const REGISTER_LIMIT = { max: 5, windowMs: 15 * 60 * 1000 };   // 5 / 15 menit / IP
+// QA backend lokal boleh bikin banyak akun uji; produksi tetap 5/15m.
+// Override lewat env (dipakai scripts/start-qa-backend.sh, bukan produksi).
+const REGISTER_LIMIT = {
+  max: Number(process.env.REGISTER_RATE_MAX || 5),
+  windowMs: Number(process.env.REGISTER_RATE_WINDOW_MS || 15 * 60 * 1000),
+};
 const LOGIN_IP_LIMIT = { max: 20, windowMs: 15 * 60 * 1000 };  // 20 / 15 menit / IP
 const LOGIN_USER_LIMIT = { max: 8, windowMs: 15 * 60 * 1000 }; // 8 / 15 menit / akun
 

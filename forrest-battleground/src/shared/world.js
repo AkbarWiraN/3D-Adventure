@@ -112,7 +112,8 @@ export function buildPois() {
  */
 export function buildSpawnCandidates() {
   const rng = makeRng(SEED ^ 0x53504157);
-  const structure = [...buildHouses(), ...buildPois()];
+  // Batu besar kini punya collider → kandidat spawn tidak boleh di dalamnya.
+  const structure = [...buildHouses(), ...buildPois(), ...buildLargeRocks()];
   const out = [];
   let guard = 0;
   while (out.length < 48 && guard++ < 20000) { // target 48 > 40
@@ -122,7 +123,9 @@ export function buildSpawnCandidates() {
     if (terrainSlope(x, z) > 0.12) continue; // hanya tempat landai
     let blocked = false;
     for (const s of structure) {
-      const r = (s.kind === 'house' ? Math.max(s.w, s.d) / 2 + 3 : s.radius + 4);
+      const r = s.kind === 'house' ? Math.max(s.w, s.d) / 2 + 3
+        : s.kind === 'rock' ? s.scale + 2
+          : s.radius + 4;
       if (Math.hypot(s.x - x, s.z - z) < r) { blocked = true; break; }
     }
     if (blocked) continue;
@@ -197,6 +200,70 @@ export function buildColliders() {
   return out;
 }
 
+// ------------------------------------------------------- batu besar & jalan setapak
+/**
+ * Batu besar (≥3 varian ukuran dari geometri yang sama: besar/sedang/kecil sudah
+ * ada di vegetasi; ini yang punya collider). Deterministik, menghindari rumah/POI.
+ */
+export function buildLargeRocks() {
+  const rng = makeRng(SEED ^ 0x524f434b);
+  const avoid = [...buildHouses(), ...buildPois()];
+  const rocks = [];
+  let guard = 0;
+  while (rocks.length < 18 && guard++ < 4000) {
+    const spot = findFlatSpot(rng, { minSlope: 0.2, avoid: [...avoid, ...rocks], minDist: 22 });
+    if (!spot) continue;
+    rocks.push({
+      id: `rock-${String(rocks.length + 1).padStart(2, '0')}`,
+      kind: 'rock',
+      x: spot.x,
+      y: spot.y,
+      z: spot.z,
+      scale: randRange(rng, 1.6, 4.2),
+      rotY: randRange(rng, 0, Math.PI * 2),
+    });
+  }
+  return rocks;
+}
+
+/**
+ * Jalan setapak: rantai segmen antar struktur terdekat (bukan grid jalan penuh).
+ * PURE & deterministik — dipakai terrain (pewarnaan tanah) dan bisa dipakai server.
+ * Mengembalikan daftar segmen garis {ax,az,bx,bz,width}.
+ */
+export function buildPaths() {
+  const nodes = [...buildHouses(), ...buildPois()];
+  // Urutkan deterministik lalu sambungkan berurutan: jaringan jalan sederhana
+  // yang mudah dibaca pemain tanpa algoritma graph (cukup untuk MVP).
+  const sorted = [...nodes].sort((a, b) => (a.x - b.x) || (a.z - b.z));
+  const segs = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const a = sorted[i - 1];
+    const b = sorted[i];
+    const d = Math.hypot(b.x - a.x, b.z - a.z);
+    if (d < 20 || d > 300) continue; // terlalu dekat/terlalu jauh: bukan jalan
+    segs.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, width: 3.0 });
+  }
+  return segs;
+}
+
+/** Jarak titik ke segmen jalan terdekat (meter). Dipakai pewarnaan terrain. */
+export function distanceToPath(x, z, segs) {
+  let best = Infinity;
+  for (const s of segs) {
+    const dx = s.bx - s.ax;
+    const dz = s.bz - s.az;
+    const len2 = dx * dx + dz * dz;
+    let t = len2 > 0 ? ((x - s.ax) * dx + (z - s.az) * dz) / len2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const px = s.ax + t * dx;
+    const pz = s.az + t * dz;
+    const d = Math.hypot(x - px, z - pz);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
 /** Snapshot dunia lengkap (deterministik). Cache di pemanggil. */
 let _cache = null;
 export function getWorld() {
@@ -206,6 +273,20 @@ export function getWorld() {
   const spawns = buildSpawnCandidates();
   const loot = buildLootHotspots();
   const colliders = buildColliders();
+  const largeRocks = buildLargeRocks();
+  const paths = buildPaths();
+  // Batu besar ikut jadi collider (spec: benda besar punya collision).
+  for (const r of largeRocks) {
+    colliders.push({
+      id: r.id,
+      shape: 'obb',
+      cx: r.x, cz: r.z,
+      hx: r.scale * 0.75, hz: r.scale * 0.75,
+      rotY: 0,
+      y: r.y, h: r.scale * 1.5,
+      solid: true,
+    });
+  }
   _cache = {
     seed: SEED,
     version: WORLD.VERSION,
@@ -216,6 +297,8 @@ export function getWorld() {
     spawns,
     loot,
     colliders,
+    largeRocks,
+    paths,
   };
   return _cache;
 }

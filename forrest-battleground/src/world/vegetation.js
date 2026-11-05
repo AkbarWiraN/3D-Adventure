@@ -149,6 +149,37 @@ export function createVegetationChunk(chunkX, chunkZ) {
   }, { cast: true, color: 0x3d6130 });
   if (cone2 && cone2.count) group.add(cone2);
 
+  // --- Pohon varian 3: pohon mati/kerdil (batang miring tanpa tajuk lebat).
+  // Melengkapi syarat "pohon >=3 varian" (prompt.md §F1 checklist butir 5).
+  const tree3Count = Math.round(counts.trees * 0.30);
+  const t3rng = rngAt(WORLD.SEED, chunkX, chunkZ, 0x534e4147);
+  const snag3 = makeInstanced(g.log, mats.barkDark, tree3Count, () => {
+    const x = originX + t3rng() * size;
+    const z = originZ + t3rng() * size;
+    if (terrainSlope(x, z) > 0.26) return null;
+    const h = randRange(t3rng, 3.0, 5.0);
+    return {
+      x, z, y: terrainHeight(x, z) + h / 2,
+      rx: (t3rng() - 0.5) * 0.28, rz: (t3rng() - 0.5) * 0.28, ry: t3rng() * 6.283,
+      sx: randRange(t3rng, .8, 1.3), sy: h, sz: randRange(t3rng, .8, 1.3),
+    };
+  }, { cast: true });
+  if (snag3) group.add(snag3);
+
+  const snagTop3 = makeInstanced(g.canopyLow, mats.leafLight, tree3Count, (i) => {
+    const m = new THREE.Matrix4();
+    if (!snag3 || i >= snag3.count) return null;
+    snag3.getMatrixAt(i, m);
+    const p = new THREE.Vector3().setFromMatrixPosition(m);
+    const h = new THREE.Vector3().setFromMatrixScale(m).y;
+    return {
+      x: p.x, z: p.z, y: p.y + h * 0.45,
+      ry: t3rng() * 6.283,
+      sx: randRange(t3rng, .9, 1.5), sy: randRange(t3rng, .6, 1.0), sz: randRange(t3rng, .9, 1.5),
+    };
+  }, { cast: true, color: 0x4e7a3c });
+  if (snagTop3 && snagTop3.count) group.add(snagTop3);
+
   // --- Semak
   const bush = makeInstanced(g.bush, mats.bush, counts.bushes, () => {
     const x = originX + rng() * size;

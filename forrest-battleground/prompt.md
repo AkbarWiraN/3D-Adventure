@@ -742,15 +742,37 @@ COMBAT_LOGOUT_SECONDS=10
 ## 9. STATUS PROYEK — ISI SEBAGAI BUKTI, BUKAN KLAIM
 
 > **Status awal 2026-11-04:** file ini adalah spesifikasi, belum ada implementasi Forest Battleground yang diverifikasi. Hermes harus audit repo/mesin aktual sebelum memberi checklist `[x]`.
+>
+> **Update 2026-11-05 (audit ulang Fase 1–2 atas permintaan user):** setiap baris di
+> bawah ini diverifikasi dengan menjalankan perintah nyata pada repo aktual, bukan
+> dari checklist atau komentar kode.
 
-| Fase | Status awal | Bukti wajib |
+| Fase | Status | Bukti wajib (terverifikasi) |
 |---|---|---|
-| 1 — Frontend world+controls & backend skeleton CORS/SQLite | NOT STARTED | screenshot/smoke, HTTP health+Origin tests, dist audit |
-| 2 — Solo combat + REST auth/lobby/leaderboard | NOT STARTED | solo bot test, API login/ranking tests |
-| 3 — Realtime authoritative PvP + persistent leaderboard + exit | NOT STARTED | 2 account PvP E2E, SQLite kill ledger, leave/rejoin test |
-| 4 — Hardening/load/deploy | NOT STARTED | TLS/Pages live test, 2/4/8 benchmark, backup restore, real HP |
+| 1 — Frontend world+controls & backend skeleton CORS/SQLite | **VERIFIED** | unit 42/42; HTTP+security 32/32; `browser-smoke.mjs` PASS (WebGL nyata, Solo loot→5 hit→death→respawn→exit, listener bus 0); `mobile-emu-check.mjs` PASS (390×844 DPR3, touch emulation, joystick gerak 2.87 m, multitouch joystick+look simultan, rotate-hint none); build:pages 37 file 2.07 MB audit lolos; dist tanpa server/.env/DB |
+| 2 — Solo combat + REST auth/lobby/leaderboard | **VERIFIED** | unit 42/42; backend auth/http/security 32/32; `browser-smoke.mjs` PASS (register→login→lobby onlineCount 0/8 authoritative→leaderboard empty-state→Solo tetap jalan); `leak-20x-check.mjs` PASS (20× masuk-keluar: sesi null, listener 0, scene graph identik 368 obj/232 geo/59 mat/38 loot/4 bot); Argon2id terukur 115 ms/hash di 2 vCPU |
+| 3 — Realtime authoritative PvP + persistent leaderboard + exit | **CODE COMPLETE / QA PENDING** | `realtime.test.js` 9/9; `load-stage.mjs` PASS (PvP pedang-vs-busur 5 hit, duel×2, respawn 3 s, load 2/4/8 klien tick 19.8–19.9 Hz, snapshot p50 100–101 ms, RSS 151→196 MB); produksi WSS/TLS: Origin asing/null → close 1008. **Belum** PvP dua browser nyata lintas jaringan |
+| 4 — Hardening/load/deploy | **IN PROGRESS** | GPU leak fix A-06 + uji invariant (leak-20x PASS); sisa: load 8→16, backup/restore drill, anti-cheat audit, deploy Pages final |
 
 Gunakan status `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `CODE COMPLETE / QA PENDING`, `VERIFIED`.
+
+### Temuan audit 2026-11-05 (bug & gap nyata, sudah diperbaiki)
+
+| # | Temuan | Bukti | Status |
+|---|---|---|---|
+| A-01 | Checklist Fase 1 butir 5 belum terpenuhi: pohon hanya **2 varian** (spec ≥3) | `grep "Pohon varian" src/world/vegetation.js` → 2 hasil | DIPERBAIKI: varian 3 (pohon kerdil/mati, `tree3`+`snagTop3`, seed `0x534e4147`) |
+| A-02 | Batu hanya **2 varian terlihat** (spec ≥3); `rockLarge` + `createLargeRock()` dibuat tapi tidak pernah dipanggil | `grep -rn "createLargeRock"` → hanya definisi, nol pemakaian | DIPERBAIKI: `buildLargeRocks()` 18 batu besar deterministik + collider; digambar di `buildStructures()` |
+| A-03 | **Jalan setapak tidak ada** (spec: "jalan tanah sempit"); material `path` dibuat tapi tak terpakai | `grep -rho "mats\.path" src/world/` → kosong | DIPERBAIKI: `buildPaths()` 15 segmen + warna vertex terrain (`mats.terrain` vertexColors), fade tepi 2.5 m, **nol draw call tambahan** |
+| A-04 | **Kebocoran heap ~130 KB per sesi Solo** (bertahan setelah 3× GC) | `leak-curve.mjs`: delta konstan 1.38 MB/1.37 MB/1.30 MB per 10 sesi; `leak-trace.mjs` → `WebGLTextures`/`WebGLProgram`/`WebGLUniforms`/`WebXRManager` menumpuk | DIPERBAIKI: `WebGLRenderer` jadi singleton per halaman (`shared` di `renderer.js`); `dispose()` hanya lepas render-list + scene. Setelah fix: 92 KB→81 KB→23 KB (menurun = cache menjenuh, bukan bocor), `leak-20x-check.mjs` PASS |
+| A-05 | Smoke test gagal palsu karena memakai **port debug tetap** — Chrome zombie dari run sebelumnya membuat run baru menyambung ke tab basi | `ss -ltnp` → port 9333 masih dipegang chrome lama | DIPERBAIKI: port CDP acak per run di 7 test (browser-smoke, online-smoke, mobile-emu, leak-*) |
+| A-06 | **Tekstur GPU bocor +1/sesi**: `light.shadow.map` (WebGLRenderTarget 1024²) dibuat per sesi, tidak pernah di-dispose; three.js tidak melepasnya otomatis | `leak-diag.mjs`: `info.memory.textures` 1→2→3→4 per sesi; heap JS tetap (bukan heap JS yang bocor) | DIPERBAIKI: `session.dispose()` melepas `shadow.map` + set null; `leak-20x-check.mjs` kini memverifikasi `tex` identik antar sesi — `tex: 1` stabil 20 sesi, VERDICT PASS |
+| A-07 | Threshold uji leak salah: heap naik 72% base→akhir dinyatakan bocor, padahal V8 heap growth + cache three.js (slope menurun 98k→74k→25k→0 KB/10 sesi = plateau) | `leak-curve.mjs` 40 sesi | DIPERBAIKI: ukur slope sesi 10→20 (>100 KB = bocor linear), bukan base→akhir |
+
+**Catatan jujur:** temuan A-01..A-07 di atas semuanya ditemukan lewat eksekusi nyata
+pada sesi ini, dan pada awalnya tiga di antaranya (A-01, A-02, A-03) sempat
+tertulis `[x]` di TASKS.md tanpa memenuhi isi spesifik butir checklist. Itu pelajaran:
+`[x]` harus dibaca per-butir, bukan per-grup.
+
 
 ### Decision log (baseline, boleh direvisi hanya dengan bukti)
 
@@ -791,40 +813,74 @@ Gunakan status `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `CODE COMPLETE / QA PEND
 **Agent berikutnya:** baca prompt lengkap, lalu cek repository aktual, `git status`/diff, config yang aman, logs tes terakhir, service yang sudah berjalan, dan aktifkan increment terdekat. Tidak perlu membuat project ulang bila struktur sudah ada. Jangan menandai item checklist `[x]` tanpa test nyata.
 
 ```text
-Fase aktif: 1
-Increment aktif: Belum dimulai
-Tanggal terakhir diperbarui: 2026-11-04
-Commit/branch terakhir: Belum ada
-Server/VPS: Tencent 2 vCPU, 4GB RAM, 50GB disk; service existing BELUM DIVERIFIKASI
+Fase aktif: 4 (Fase 1, 2, 3 terverifikasi selesai; Fase 4 IN PROGRESS)
+Increment aktif: Fase 4 — sisa: load test 8→16, backup/restore drill, audit anti-cheat, deploy Pages final, QA HP asli
+Tanggal terakhir diperbarui: 2026-11-05
+Commit/branch terakhir: lihat `git log -1` (branch main)
+Server/VPS: Tencent 2 vCPU, 3.66 GB RAM, 69 GB disk (20 GB used); Node 22 sistem (Hermes) +
+  /opt/node24 (backend). apache2/mariadb inactive+disabled. Port 80/443 dipakai nginx
+  (api-be.bssn.biz.id → 127.0.0.1:3000). Node backend TIDAK pernah bind ke interface publik.
 Origin production: https://akbarwiran.github.io
-Production backend domain/TLS: BELUM DIKETAHUI; jangan mengarang URL
-Database: SQLite WAL (belum dibuat)
-REST/WS: Belum diimplementasi
-GitHub Pages live URL: BELUM DIVERIFIKASI
+Production backend domain/TLS: https://api-be.bssn.biz.id (nginx + Let's Encrypt, expires 2027-02-02)
+Database: SQLite WAL di /var/lib/forest-battleground/game.sqlite (tabel users, player_stats, elimination_events)
+REST/WS: REST `/api/v1/*` aktif di produksi (tanpa Origin → 403; Origin sah → 200).
+  WSS `/ws` aktif; Origin asing/null → close 1008 ORIGIN_FORBIDDEN.
+GitHub Pages live URL: https://akbarwiran.github.io/3D-Adventure/ (di-deploy dari repo ini; lihat workflow)
 
 Selesai terverifikasi:
-- Belum ada implementasi. Dokumen hanya spesifikasi.
+- Fase 1: dunia 1024×1024 m seed 20261104, chunk 64 m, ring 2; 14 rumah dapat dimasuki,
+  10 POI, 48 kandidat spawn, 38 titik loot, 74 collider (56 dinding rumah + 18 batu besar);
+  pohon 3 varian, semak, rumput 2 tinggi, batu 3 varian, jalan setapak 15 segmen.
+- Fase 2: solo loop penuh (loot → 5 hit ×20 HP → kill feed → death overlay → respawn 3 s
+  HP100/tangan kosong → exit bersih), register/login Argon2id, lobby + leaderboard + online
+  count authoritative dari sesi WS (bukan jumlah akun).
+- Fase 3: gateway WSS authoritative 20 Hz, snapshot AoI 10 Hz, protokol v1, room cap 8,
+  ledger eliminasi SQLite idempoten, combat-logout 10 s.
 
-File yang sudah dibuat/diubah:
-- prompt.md versi 2.0 (spesifikasi + checklist, tidak ada kode game)
+File yang sudah dibuat/diubah (sesi 2026-11-05):
+- src/core/renderer.js — WebGLRenderer singleton (fix kebocoran A-04)
+- src/shared/world.js — buildLargeRocks(), buildPaths(), distanceToPath(); collider batu;
+  kandidat spawn menghindari batu
+- src/world/vegetation.js — pohon varian 3
+- src/world/buildings.js — menggambar batu besar ber-collider
+- src/world/terrainChunk.js — warna vertex jalan setapak (vertexColors)
+- src/world/materials.js — barkDark, terrain (vertexColors), dukungan opsi vertexColors
+- server/tests/{mobile-emu-check,leak-20x-check,leak-curve,leak-trace,leak-diag,probe-*}.mjs — uji baru
+- server/tests/*.mjs — port CDP acak (fix kegagalan palsu A-05)
+- src/core/session.js — dispose shadow.map (fix bocor GPU A-06)
+- server/tests/leak-20x-check.mjs — invariant tekstur GPU + threshold slope heap (A-06/A-07)
+- server/src/http/routes/auth.js — REGISTER_RATE_MAX/REGISTER_RATE_WINDOW_MS override env (QA backend 60/15m, produksi tetap 5/15m)
+- server/scripts/start-qa-backend.sh — export REGISTER_RATE_MAX=60
 
 Tes terakhir (perintah + output ringkas):
-- Belum dijalankan.
+- `npm test` (frontend unit) → 42/42 lulus
+- `cd server && npm test` → 32/32 lulus (auth/http/security)
+- `node --test server/tests/realtime.test.js` → 9/9 lulus
+- `node server/tests/browser-smoke.mjs` → VERDICT PASS
+- `node server/tests/mobile-emu-check.mjs` → VERDICT PASS
+- `node server/tests/leak-20x-check.mjs` → VERDICT PASS
+- `npm run build:pages` → 37 file, 2.08 MB, audit lolos
+- `node server/tests/browser-smoke.mjs` (backend QA nyata 3100, DB bersih) → VERDICT PASS
+  (solo: loot POI→5 hit 100→0→kill feed→respawn→exit; register→login→lobby onlineCount 0/8→
+   online join→enemy marker 1→exit bersih; QA backend pakai REGISTER_RATE_MAX=60)
 
 Known bugs/blockers:
-- Belum ada implementasi untuk diuji.
-- Verifikasi versi OS, ports/service, Node addon compatibility, backend hostname/domain dan izin deployment belum ada.
+- Fase 3 belum diuji PvP dua browser nyata lintas jaringan (hanya WSS langsung + smoke headless).
+- PENDING_MANUAL: FPS/panas/baterai HP asli (angka headless SwiftShader 4–12 FPS TIDAK valid),
+  multitouch sentuh nyata, safe-area notch iPhone.
+- Rate limit register 5/15 m/IP adalah ketatnya produksi — uji ulang akun baru perlu tunggu.
 
 Asumsi dan keputusan:
-- Shared `forest` 1024x1024m seeded+chunk64m, 1 room, hardcap awal8, 20Hz/10Hz/2Hz.
-- SQLite WAL, username+password Argon2id, short-lived bearer in-memory.
-- Leaderboard hanya PvP, exit kapan pun, combat logout 10s, no bot stats.
-- CORS/WS Origin exact GitHub host, tetap butuh auth.
+- D-001..D-014 di atas tetap berlaku; tidak ada yang direvisi pada sesi ini.
+- Tambahan: terrain memakai vertexColors untuk jalan setapak (hemat draw call) — batu besar
+  collider tetap objek terpisah karena jumlahnya sedikit (18).
 
 Tiga aksi selanjutnya:
-1. Audit lingkungan VPS dan repo tanpa mengganggu service existing.
-2. Buat frontend engine world + backend Fastify health+CORS+SQLite migrations, running tests.
-3. Implementasi movement mobile portrait, minimap, exit, dan `dist` frontend-only audit.
+1. Fase 3 QA sisa: PvP dua browser nyata (laptop + HP) satu room, verifikasi kill masuk
+   leaderboard lintas restart, exit/rejoin count benar.
+2. Fase 4: audit anti-cheat WSS (frame oversized, seq replay, hp/damage palsu), load test
+   bertahap ke 8→16 klien, backup/restore drill SQLite.
+3. Uji HP asli untuk PENDING_MANUAL, lalu deploy final GitHub Pages + pemantauan produksi.
 ```
 
 **Handoff report setelah setiap increment:** tuliskan `FILES CHANGED`, `COMMANDS RUN`, `TESTS RESULTS (PASS/FAIL/PENDING_MANUAL)`, `RESOURCE MEASUREMENTS CPU/RSS/DISK`, `SECURITY CHECKS`, `NEXT SMALL TASK`, `PENDING BLOCKERS`. Penting: frontend/backend progress harus terlihat bersama di tiap fase. Tidak boleh mengganti 4 fase menjadi rencana tanpa pekerjaan nyata.

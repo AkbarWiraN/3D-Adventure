@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { getMaterials } from './materials.js';
 import { getWorld } from '../shared/world.js';
+import { createLargeRock } from './vegetation.js';
 
 /** Bangun satu rumah lengkap: 4 dinding dengan bukaan pintu + atap + lantai. */
 export function createHouse(h) {
@@ -191,5 +192,7 @@ export function buildStructures() {
   group.name = 'structures';
   for (const h of world.houses) group.add(createHouse(h));
   for (const p of world.pois) group.add(createPoi(p));
+  // Batu besar ber-collider: bentuk nyata harus terlihat, bukan collider hantu.
+  for (const r of world.largeRocks || []) group.add(createLargeRock(r));
   return group;
 }

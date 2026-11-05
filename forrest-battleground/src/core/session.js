@@ -204,11 +204,15 @@ export class SoloSession {
     }
     this.owned = [];
 
-    // Lampu
-    this.scene.remove(this.lighting.sun);
+    // Lampu. shadow.map = WebGLRenderTarget GPU (1024-2048^2) yang TIDAK
+    // dilepas otomatis oleh three.js — tanpa dispose ini satu tekstur GPU
+    // bocor per sesi (terukur: info.memory.textures 1->2->3->4 per sesi).
+    const lights = [this.lighting.sun, this.lighting.hemi, this.lighting.amb];
+    for (const l of lights) {
+      if (l?.shadow?.map) { l.shadow.map.dispose(); l.shadow.map = null; }
+      this.scene.remove(l);
+    }
     this.scene.remove(this.lighting.sun.target);
-    this.scene.remove(this.lighting.hemi);
-    this.scene.remove(this.lighting.amb);
 
     this.renderer.dispose();
     this.screens.hideMap();
