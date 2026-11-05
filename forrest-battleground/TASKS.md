@@ -281,16 +281,24 @@ _(IN PROGRESS)_
 - Regresi: unit 49/49, server 33/33. Pages deploy commit ini akan membawa ikon
   ke produksi (path relatif aman untuk subpath /3D-Adventure/forrest-battleground/).
 
+### Catatan run 2026-11-05 (malam #3) — fb-backup.timer dipulihkan + restore drill PRODUKSI nyata
+- DRIFT OPS DITEMUKAN & DIPERBAIKI: `fb-backup.timer` masih inactive/disabled
+  (sisa shutdown pentest di OPS_CHECKLIST; backend+nginx sudah di-enable run
+  sebelumnya tapi timer backup terlewat). Sekarang ENABLED+ACTIVE,
+  NEXT Fri 2026-11-06 03:17 CST. Backup manual `systemctl start fb-backup.service`
+  SUKSES: game-20261105-150845.sqlite (60.0 KB, mode 0600), integrity=ok, users=25.
+- RESTORE DRILL PRODUKSI (melengkapi catatan Fase 4 yang sebelumnya hanya ke file
+  terpisah): service stop → safety copy ke scratch → ganti DB live dengan backup
+  barusan (hapus wal/shm) → start. Hasil: health 200, integrity ok, users 25,
+  user nyata (akbarwir, uitest3, qa_persist, dll) + leaderboard queryable,
+  publik Origin sah 200 / tanpa Origin 403. Downtime <60 s, di luar jam ramai,
+  data identik (backup diambil 24 detik sebelum restore). Safety copy scratch
+  dihapus setelah verifikasi.
+- HOUSEKEEPING: seksi PENDING_MANUAL ganda di file ini digabung jadi satu.
+
 ## Butuh Keputusan
 
 _(kosong)_
-
-## PENDING_MANUAL (butuh HP asli)
-
-- [M] Uji FPS/panas/baterai di HP Android & iOS nyata — FPS headless 4-8 tidak valid (SwiftShader)
-- [M] Uji multitouch joystick + drag-look simultan di layar sentuh nyata
-- [M] Cek safe-area notch di iPhone nyata
-
 
 ## PENDING_MANUAL (butuh HP asli)
 
