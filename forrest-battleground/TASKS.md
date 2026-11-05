@@ -610,3 +610,9 @@ _(IN PROGRESS)_
 - Healthz: loopback 200 `{"ok":true,"db":true}`; publik 403 (by design).
 - Verifikasi (PATH=/opt/node24/bin:$PATH): server suite 36/36 PASS (35.3 s); unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (origin-deny, JWT, leaderboard, forest status online=0 hardCap=8, WS origin-deny 1008 / auth_ok / joined 20 Hz, forged-token 401, logout revoke).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron 2026-11-06 (malam #23)
+- Pra-cek: forest-battleground + nginx active; fb-backup.timer & fb-disk-check.timer enabled; disk 38 GB free (44%). Tanpa insiden.
+- Healthz: loopback 200 `{"ok":true,"db":true}`; publik 403 (by design).
+- Verifikasi (PATH=/opt/node24/bin:$PATH): server suite 36/36 PASS (35.4 s); unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (origin-deny, JWT, leaderboard, forest status online=0 hardCap=8, WS origin-deny 1008 / auth_ok / joined 20 Hz, forged-token 401, logout revoke).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
