@@ -133,17 +133,23 @@ async function main() {
     await ev(`window.__restoreOrigin=()=>{}`);
     await send('Page.navigate', { url: `${FRONT}?debug=1` });
     await sleep(3000);
-    const user = 'qa_' + Math.random().toString(36).slice(2, 8);
+    // Backend produksi punya rate limit register ketat (5/15m/IP) — QA berulang
+    // harus pakai akun persisten via LOGIN (env QA_USER). Lokal/QA: register acak.
+    const qaUser = process.env.QA_USER || '';
+    const user = qaUser || 'qa_' + Math.random().toString(36).slice(2, 8);
     R.authUser = user;
     await ev(`document.getElementById('auth-username').value='${user}'`);
     await ev(`document.getElementById('auth-password').value='kata-sandi-qa-123'`);
-    // Mode daftar: klik tab Daftar dulu agar field karakter tampil (UI baru).
-    await ev(`document.getElementById('auth-mode-register').click()`);
-    await ev(`document.getElementById('auth-character').value='female'`);
+    if (!qaUser) {
+      // Mode daftar: klik tab Daftar dulu agar field karakter tampil (UI baru).
+      await ev(`document.getElementById('auth-mode-register').click()`);
+      await ev(`document.getElementById('auth-character').value='female'`);
+    }
     // dialog konfirmasi server kustom (window.confirm) harus di-auto-accept di headless.
     await send('Page.enable');
     R.dialog = await ev(`(()=>{window.__dialogs=[];const o=window.confirm;window.confirm=(m)=>{window.__dialogs.push(m);return true};return 'patched'})()`);
-    R.registerClick = await ev(`document.getElementById('btn-register').click(),'clicked'`);
+    const btnId = qaUser ? 'btn-login' : 'btn-register';
+    R.registerClick = await ev(`document.getElementById('${btnId}').click(),'clicked'`);
     // Tunggu greeting lobby (hanya terisi setelah refresh() sukses) — lebih
     // deterministik daripada sleep tetap untuk menyimpulkan register sukses.
     for (let i = 0; i < 24; i++) {
@@ -166,14 +172,14 @@ async function main() {
   // ---------- Fase C: Online — HUD senjata/ammo, overlay kematian, enemy_map ----------
   // Butuh backend + satu klien WSS nyata sebagai lawan (biar snapshot/enemy_map terisi).
   if (BACKEND) {
-    const userC = 'qa_' + Math.random().toString(36).slice(2, 8);
+    const userC = process.env.QA_USER2 || 'qa_' + Math.random().toString(36).slice(2, 8);
     const login = await fetch(`${BACKEND}/api/v1/auth/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
       body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123' }),
     });
     let tok = null;
     if (login.status === 200) tok = (await login.json()).token;
-    if (!tok) {
+    if (!tok && !process.env.QA_USER2) {
       const reg = await fetch(`${BACKEND}/api/v1/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
         body: JSON.stringify({ username: userC, password: 'kata-sandi-qa-123', character: 'female' }),
@@ -186,8 +192,8 @@ async function main() {
     // protection — perilaku benar), jadi marker musuh akan 0 dan uji tidak sah.
     let foeTok = null;
     {
-      const foeUser = 'qa_foe_' + Math.random().toString(36).slice(2, 8);
-      const r = await fetch(`${BACKEND}/api/v1/auth/register`, {
+      const foeUser = process.env.QA_USER3 || 'qa_foe_' + Math.random().toString(36).slice(2, 8);
+      const r = process.env.QA_USER3 ? { status: 0 } : await fetch(`${BACKEND}/api/v1/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Origin: new URL(FRONT).origin },
         body: JSON.stringify({ username: foeUser, password: 'kata-sandi-qa-123', character: 'male' }),
       });

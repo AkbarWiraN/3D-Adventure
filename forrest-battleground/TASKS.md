@@ -219,7 +219,7 @@ _(IN PROGRESS)_
   - logrotate.timer aktif harian; nginx rotate 14 hari. Log fb via journald;
     journal 777.5 MB di-vacuum ke 394.8 MB + `SystemMaxUse=400M`,
     `MaxRetentionSec=2week` di-set permanen (sebelumnya unlimited — risiko disk penuh).
-- [~] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
+- [x] [QA] Deploy Pages final + uji path relatif di GitHub Pages nyata
   Bukti NYATA (5 Nov 2026): workflow Pages run 2660f4a SUCCESS; asset teruji
   dari internet: `/forrest-battleground/` 200 (12.2 KB), `src/main.js` 200,
   `style.css` 200, `vendor/three.module.js` 200 (603 KB). Semua import relatif
@@ -231,9 +231,13 @@ _(IN PROGRESS)_
   dari subpath Pages → `https://akbarwiran.github.io/src/...` 404; diganti
   `new URL('src/...', location.href)`. Origin fetch backend juga di-generalisasi
   dari hardcode loopback → `new URL(FRONT).origin`.
-  SISA: Fase C online 2-klien tertahan rate limit register produksi (429,
-  retry-after 659 dtk — perilaku keamanan BENAR, kuota habis oleh run QA).
-  Menunggu jendela 15 menit untuk lari ulang Fase C → kemudian [x].
+  Fase C online 2-klien PRODUKSI: PASS penuh — login → lobby → Main Online →
+  WSS joined, HUD "Tangan Kosong", enemy_markers ≥1, exit kembali ke lobby.
+  Solusi rate limit: 3 akun QA persisten (qa_persist_a/b/c) + env
+  QA_USER/QA_USER2/QA_USER3 → test LOGIN (bukan register) di produksi;
+  register acak tetap dipakai untuk backend QA lokal (env REGISTER_RATE_MAX=100).
+  Ekspektasi enemyMarkers diubah ===1 → ≥1 (produksi bisa ada pemain lain sah).
+  Verifikasi regresi: browser-smoke lokal :3100 tetap PASS.
 - [ ] [QA] Real laptop + HP portrait lintas jaringan: PvP 5 hit, leaderboard, exit/rejoin — PENDING_MANUAL
 
 ---
