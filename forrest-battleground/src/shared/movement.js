@@ -187,31 +187,27 @@ export function clampCameraAgainstColliders(grid, focusX, focusZ, camX, camZ, ra
   // terhalang — mundur perlahan sampai benar-benar bebas, jangan berhenti di titik
   // yang masih di dalam (bug lama: safe 0.25 bisa masih dalam collider).
   // t=1 (titik kamera target) bebas? Kalau ya, tak ada clamp sama sekali.
-  if (!blockedAt(camX, camZ)) return { x: camX, z: camZ, hit: false };
-  // Cari t terkecil yang BEBAS mulai dari fokus ke arah kamera.
-  let freeT = null;
-  for (let i = 0; i <= samples; i++) {
+  if (!blockedAt(camX, camZ) && !blockedAt(focusX, focusZ)) return { x: camX, z: camZ, hit: false };
+  // Jalan MAJU dari fokus, berhenti di t terakhir SEBELUM halangan pertama —
+  // bukan t bebas pertama (t=0 = fokus selalu bebas → kamera menempel ke pemain).
+  let lastFree = 0;
+  let blocked = false;
+  for (let i = 1; i <= samples; i++) {
     const t = i / samples;
     const sx = focusX + (camX - focusX) * t;
     const sz = focusZ + (camZ - focusZ) * t;
-    if (!blockedAt(sx, sz)) { freeT = t; break; }
+    if (blockedAt(sx, sz)) { blocked = true; break; }
+    lastFree = t;
   }
-  if (freeT === null) {
-    // Sepanjang garis sempit terhalang (focus di dalam collider): tarik kamera ke
-    // titik bebas terdekat di sekitar fokus (cari arah radial keluar dari collider).
-    for (let r = radius + 0.05; r <= 3; r += 0.15) {
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
-        const sx = focusX + Math.cos(a) * r;
-        const sz = focusZ + Math.sin(a) * r;
-        if (!blockedAt(sx, sz)) return { x: sx, z: sz, hit: true };
-      }
-    }
-    // Paling parah: tetap di fokus (lebih baik daripada kamera di dalam batu).
-    return { x: focusX, z: focusZ, hit: true };
+  if (blocked) {
+    // Tanpa lantai: t terakhir yang terverifikasi bebas. Lantai 0.2 sempat
+    // melompati titik halangan (kamera berakhir DI DALAM dinding).
+    const safe = lastFree * 0.92;
+    return {
+      x: focusX + (camX - focusX) * safe,
+      z: focusZ + (camZ - focusZ) * safe,
+      hit: true,
+    };
   }
-  return {
-    x: focusX + (camX - focusX) * freeT,
-    z: focusZ + (camZ - focusZ) * freeT,
-    hit: true,
-  };
+  return { x: camX, z: camZ, hit: false };
 }

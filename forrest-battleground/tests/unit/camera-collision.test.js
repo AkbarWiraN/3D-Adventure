@@ -13,23 +13,39 @@ import { CONFIG } from '../../src/config.js';
 const world = getWorld();
 const grid = buildColliderGrid(world.colliders);
 const CAM_DIST = CONFIG.camera.distance;
+const PLAYER_R = 0.45; // CONFIG.camera.collideRadius
 
 /** Ada collider yang menutupi titik ini? (toleransi kecil) */
 const insideAny = (x, z, r = 0.05) =>
   nearbyColliders(grid, x, z, r + 1).some((c) => circleVsObb(x, z, r, c));
 
-test('kamera tidak masuk collider dari titik berdiri valid × 4 arah', () => {
-  // Titik uji = posisi yang MEMANG bisa diduduki pemain:
-  //  - spawn candidates (dijamin bebas collider), dan
-  //  - 4 titik di luar tiap rumah (2.6 m dari pusat, di luar dinding 2.25 m).
-  const around = [];
+/** Kumpulkan titik berdiri yang MEMANG boleh diduduki pemain. */
+function standingSpots() {
+  const out = [];
+  for (const s of world.spawns || []) out.push({ x: s.x, z: s.z, tag: 'spawn' });
   for (const h of world.houses || []) {
     for (const a of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
-      around.push({ x: h.x + Math.sin(a) * 2.6, z: h.z + Math.cos(a) * 2.6, tag: 'luar-rumah' });
+      for (const d of [3.5, 4.5]) {
+        const x = h.x + Math.sin(a) * d;
+        const z = h.z + Math.cos(a) * d;
+        if (!insideAny(x, z, PLAYER_R)) out.push({ x, z, tag: 'dekat-rumah' });
+      }
     }
   }
-  const spots = [...(world.spawnCandidates || []).map((s) => ({ x: s.x, z: s.z, tag: 'spawn' })), ...around];
-  assert.ok(spots.length >= 30, `titik uji memadai (${spots.length})`);
+  for (const r of world.largeRocks || []) {
+    for (const a of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
+      const rad = 1.6 * r.scale;
+      const x = r.x + Math.sin(a) * rad;
+      const z = r.z + Math.cos(a) * rad;
+      if (!insideAny(x, z, PLAYER_R)) out.push({ x, z, tag: 'dekat-batu' });
+    }
+  }
+  return out;
+}
+
+test('kamera tidak masuk collider dari titik berdiri valid × 4 arah', () => {
+  const spots = standingSpots();
+  assert.ok(spots.length >= 40, `titik uji memadai (${spots.length})`);
 
   let cases = 0;
   let blocked = 0;
@@ -46,9 +62,11 @@ test('kamera tidak masuk collider dari titik berdiri valid × 4 arah', () => {
       }
     }
   }
-  assert.ok(cases >= 120, `kasus diuji ${cases}`);
+  assert.ok(cases >= 160, `kasus diuji ${cases}`);
   // Harus ada yang memang terhalang — 0 berarti collision tidak pernah aktif.
   assert.ok(blocked > 0, 'tidak ada kamera terhalang: collision tampak mati');
+  // Clamp tidak boleh SELALU aktif (itu berarti kamera selalu ditempel ke pemain).
+  assert.ok(blocked < cases, `clamp selalu aktif (${blocked}/${cases}): kamera menempel ke pemain`);
   assert.equal(bad.length, 0, `kamera tembus collider: ${bad.slice(0, 5).join(' | ')}`);
 });
 
