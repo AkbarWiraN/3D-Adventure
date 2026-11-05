@@ -242,6 +242,23 @@ _(IN PROGRESS)_
 
 ---
 
+### Catatan run 2026-11-05 (malam) — regresi HEAD e33659a hijau + hardening ops
+- Verifikasi HEAD e33659a (animasi serang + loot liar, dari sesi lain): unit 49/49,
+  backend 33/33, leak-20x PASS, mobile-emu landscape PASS, build:pages 37 file
+  2.11 MB audit lolos, browser-smoke PRODUKSI PASS penuh (Solo 5-hit kill,
+  death/respawn, login akun persisten, Online 2-klien WSS, exit leak-free).
+  Pages deploy e33659a SUCCESS; kode baru terkonfirmasi terlayani publik.
+- INSIDEN OPS: forest-battleground.service + nginx ditemukan INACTIVE (kedua
+  kalinya hari ini; systemd log: "Stopped" manual 14:04/14:07 oleh sesi
+  paralel). Publik api-be sempat down. DIPULIHKAN + sekarang KEDUA service
+  di-ENABLE (sebelumnya disabled → tidak auto-start saat reboot) dan aktif:
+  health 200 Origin sah / 403 tanpa Origin, Pages 200.
+  TINDAKAN PENCEGAHAN: jangan pernah 'systemctl stop' kedua service ini di
+  sesi QA — pakai backend QA lokal port lain (mis. :3100) untuk test destruktif.
+- Gotcha tooling: '/opt/node24/bin/npm test' TANPA PATH akan memakai
+  /usr/bin/node v22 → native addon better-sqlite3 ERR_DLOPEN_FAILED (127 vs
+  137). Wajib 'PATH=/opt/node24/bin:$PATH' sebelum npm test/start.
+
 ### Catatan run 2026-11-05 (sore) — leak-20x distabilkan
 - Tiga akar flake leak-20x terbukti via bedah scene CDP & diperbaiki (commit c364259):
   (1) spawn acak dekat tepi -> ring chunk terpotong batas -> chunk count bervariasi
