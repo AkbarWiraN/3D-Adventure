@@ -1104,3 +1104,9 @@ _(IN PROGRESS)_
 - Healthz loopback 200; publik tanpa Origin 403 (by design).
 - Server suite 36/36 PASS; unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (semua skenario: origin-deny 403, register 409, login JWT, users/me, leaderboard, forest cap=8, WS origin-deny 1008, auth_ok, joined 20Hz, forged-token 401, logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron 2026-11-07 #86 (verifikasi penuh)
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer semua active; disk 38 GB free (44%); HEAD = origin/main (ecac3a1); tanpa insiden sesi paralel.
+- Healthz loopback 200; publik tanpa Origin 403 (by design).
+- Server suite 36/36 PASS; unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (semua skenario: origin-deny 403, register 409, login JWT, users/me, leaderboard, forest cap=8, WS origin-deny 1008, auth_ok, joined 20Hz, forged-token 401, logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
