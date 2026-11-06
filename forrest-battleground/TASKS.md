@@ -790,3 +790,9 @@ _(IN PROGRESS)_
 - Verifikasi penuh (PATH=/opt/node24/bin): server suite **36/36 PASS** (~35 s) · unit FE **49/49 PASS** (`node --test tests/unit/*.test.js`) · prod-smoke produksi **14/14 PASS** (register→JWT→leaderboard→forest status→WS origin-deny/auth/join→forged-token 401→logout revoke).
 - Catatan gotcha: prod-smoke tinggal di `server/tests/prod-smoke.mjs` (bukan `tests/`) — sempat salah path di run ini, langsung koreksi, hasil tetap 14/14 PASS. Tanpa perubahan kode.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Run malam #45 — 2026-11-06 (cron verifikasi penuh)
+- Pra-cek bersih: forest-battleground+nginx active; fb-backup.timer & fb-disk-check.timer active; backend bind 127.0.0.1:3000; disk 38 GB free (44%); origin/main sinkron di 2edc073 sebelum run. Tanpa insiden sesi paralel.
+- Healthz sesuai desain: loopback 200; publik tanpa Origin 403.
+- Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS (~35 s); unit FE 49/49 PASS; prod-smoke 14/14 PASS (origin-deny 403 -> protected 401 -> register 409 -> login JWT -> users/me -> leaderboard -> forest status -> WS origin-deny 1008 -> auth_ok -> joined 20 Hz -> forged-token 401 -> logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
