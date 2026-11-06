@@ -1128,3 +1128,9 @@ _(IN PROGRESS)_
 - Healthz: loopback 200; publik tanpa Origin 403 (by design).
 - Verifikasi penuh: server 36/36 PASS (~35 s), unit FE 49/49 PASS, prod-smoke produksi 14/14 PASS (semua skenario: origin-deny, register 409, login JWT, users/me, leaderboard, forest cap=8, WS origin-deny 1008, auth_ok, joined 20 Hz, forged 401, logout revoke).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #90 — 2026-11-07
+- Pra-cek: nginx/service/timer active, disk 38 GB free (44%), HEAD=origin/main (16a4c9d), tanpa insiden sesi paralel.
+- Healthz: loopback 200; publik tanpa Origin 403 (by design).
+- Verifikasi penuh (PATH=/opt/node24/bin): server 36/36 PASS (~35 s), unit FE 49/49 PASS, prod-smoke produksi 14/14 PASS (origin-deny 403, register 409, login JWT, users/me, leaderboard, forest cap=8, WS origin-deny 1008, auth_ok, joined 20 Hz, forged 401, logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
