@@ -1021,3 +1021,9 @@ _(IN PROGRESS)_
   forged-token 401 → logout revoke 401).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti,
   sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden run ini).
+
+## Catatan run cron 2026-11-06 (run #76)
+- Pra-cek bersih: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer active; disk 38 GB free (44%); origin/main sinkron (046848f); tanpa insiden sesi paralel.
+- Healthz sesuai desain: loopback 127.0.0.1:3000/healthz → 200; publik api-be.bssn.biz.id/healthz tanpa Origin → 403.
+- Verifikasi penuh: server 36/36 PASS (~35 s), unit FE 49/49 PASS, prod-smoke 14/14 PASS.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS (sisa AT-31 PENDING_MANUAL HP asli). Butuh Keputusan tetap 1 item.
