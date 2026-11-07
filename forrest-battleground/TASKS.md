@@ -1389,3 +1389,9 @@ _(IN PROGRESS)_
     joined 20 Hz → forged-token 401 → logout revoke 401)
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31).
   Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden run ini). Tanpa drift, tanpa perubahan kode.
+
+## Run 2026-11-07 (cron #136 — run ke-15)
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer active; disk 38G free (43%); HEAD=origin/main (ee8e895); tanpa insiden sesi paralel.
+- Healthz: loopback 127.0.0.1:3000/healthz → 200; publik tanpa Origin → 403; Origin jahat → 403; /api/v1/health Origin benar → 200, tanpa Origin → 403 (sesuai desain Origin EXACT).
+- Verifikasi penuh: server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS per-file (camera-collision 3, chunk 9, combat 1, spawn 8, world 28); prod-smoke produksi 14/14 PASS.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
