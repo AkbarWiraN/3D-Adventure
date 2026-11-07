@@ -1414,3 +1414,9 @@ _(IN PROGRESS)_
   forged-token 401, logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31).
   Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run verifikasi 2026-11-07 (#18)
+- Pra-cek: service+nginx active, disk 38 GB free, HEAD=origin/main (5fbfbbb), working tree bersih.
+- Origin guard EXACT di endpoint asli: tanpa Origin 403 / GitHub Pages 200 / origin jahat 403; /healthz publik 403, loopback 200.
+- Server suite 36/36 PASS (~35,5 s); unit FE 49/49 PASS per-file; prod-smoke 14/14 PASS.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
