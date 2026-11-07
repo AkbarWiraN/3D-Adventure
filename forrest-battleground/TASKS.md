@@ -1577,3 +1577,9 @@ _(IN PROGRESS)_
 - Checkpoint cron #162 (8 Nov 2026): verifikasi penuh — service+timers active, disk 44%,
   origin guard EXACT (healthz 200 / health 200), server 36/36, unit FE 49/49,
   prod-smoke produksi 14/14. Nol drift, nol item baru. Sisa 1 item PENDING_MANUAL (AT-31).
+
+### Cron #163 — 8 Nov 2026 (verifikasi penuh, nol drift)
+- Pra-cek: forest-battleground.service, nginx, fb-backup.timer, fb-disk-check.timer active; disk 38 GB free (44%); HEAD sinkron origin/main, tree bersih.
+- Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin https://akbarwiran.github.io via domain produksi 200.
+- Verifikasi penuh: server suite 36/36 PASS; unit FE 49/49 PASS; prod-smoke 14/14 PASS (origin-deny 403 → protected 401 → register → login JWT → users/me → leaderboard → forest online cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
