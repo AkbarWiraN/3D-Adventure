@@ -1502,3 +1502,9 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /api/v1/health Origin GitHub Pages=200, tanpa Origin=403; /healthz loopback=200.
 - Verifikasi penuh: server 36/36 PASS (~35,4 s), unit FE 49/49 PASS, prod-smoke produksi 14/14 PASS (online=0 hardCap=8, tick 20 Hz).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-08 (cron #153) — verifikasi penuh, nol drift
+- Pra-cek: service + nginx active; disk 38 GB free; HEAD = origin/main; tree bersih.
+- Origin guard EXACT: /api/v1/health origin benar 200, tanpa origin 403; /healthz loopback 200.
+- Verifikasi penuh: server 36/36, unit FE 49/49, prod-smoke produksi 14/14 PASS.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
