@@ -1473,3 +1473,8 @@ _(IN PROGRESS)_
   (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard →
   forest online=0 hardCap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Run cron 2026-11-07 23:52 (#148)
+- Verifikasi penuh: server 36/36 PASS, unit FE 49/49 PASS, prod-smoke produksi 14/14 PASS.
+- Origin guard EXACT: /api/v1/health Origin GitHub Pages=200, tanpa Origin=403; /healthz loopback=200.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
