@@ -1562,3 +1562,9 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin https://akbarwiran.github.io via domain produksi 200.
 - Verifikasi: server suite 36/36 PASS, unit FE 49/49 PASS, prod-smoke produksi 14/14 PASS.
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Checkpoint cron #160 — 8 Nov 2026
+- Pra-cek: service/nginx/timer active; disk 38 GB free (44%); HEAD sinkron origin/main, tree bersih.
+- Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin https://akbarwiran.github.io via domain produksi 200.
+- Verifikasi penuh: server suite 36/36 PASS; unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
