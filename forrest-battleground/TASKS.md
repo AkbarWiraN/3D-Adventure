@@ -1465,3 +1465,11 @@ _(IN PROGRESS)_
   Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni
   PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi
   paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-07 (#26) — verifikasi penuh 36/36+49/49+14/14, nol drift
+- Pra-cek: forest-battleground.service + nginx active; disk 38 GB free (44%); HEAD = origin/main; tanpa insiden sesi paralel.
+- Origin guard EXACT: /api/v1/health Origin https://akbarwiran.github.io → 200; tanpa Origin → 403. /healthz loopback 200 (publik 403 by design).
+- Server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS
+  (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard →
+  forest online=0 hardCap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
