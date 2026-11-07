@@ -1401,3 +1401,16 @@ _(IN PROGRESS)_
 - Healthz & Origin EXACT sesuai desain: loopback 127.0.0.1:3000/healthz 200; publik tanpa Origin 403; Origin benar 200; Origin jahat 403.
 - Verifikasi (PATH=/opt/node24/bin:$PATH): server suite 36/36 PASS (35.4 s); unit FE 49/49 PASS (camera-collision 3, chunk 9, combat 1, spawn 8, world 28); prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard top10/me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron 2026-11-07 (#138)
+- Pra-cek bersih: forest-battleground + nginx active; healthz loopback 200; disk 38 GB free (43%);
+  origin/main sinkron; tanpa insiden sesi paralel.
+- Origin guard EXACT terkonfirmasi pada endpoint asli: /api/v1/health tanpa Origin 403,
+  Origin https://akbarwiran.github.io 200, Origin jahat 403; /healthz publik 403 (loopback-only by design).
+- Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS (~35,4 s);
+  unit FE 49/49 PASS per-file (camera-collision 3, chunk 9, combat 1, spawn 8, world 28);
+  prod-smoke produksi 14/14 PASS (origin-deny 403, register idempotent 409, login JWT, users/me,
+  leaderboard top10/me, forest status online=0 hardCap=8, WS origin-deny 1008, auth_ok, joined 20 Hz,
+  forged-token 401, logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31).
+  Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
