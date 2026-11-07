@@ -1421,3 +1421,13 @@ _(IN PROGRESS)_
 - Server suite 36/36 PASS (~35,5 s); unit FE 49/49 PASS per-file; prod-smoke 14/14 PASS.
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
 - Run cron verifikasi 2026-11-07 (#19): 36/36 server suite, 49/49 unit FE (camera-collision 3, chunk 9, combat 1, spawn 8, world 28), 14/14 prod-smoke produksi. Origin guard EXACT terkonfirmasi (no-origin 403 / good 200 / evil 403; healthz publik 403, loopback 200). Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-07 (run #20) — verifikasi penuh, tanpa drift
+- Pra-cek bersih: service+nginx active, disk 38 GB free, HEAD=origin/main (008be59).
+- Origin guard EXACT: /api/v1/health tanpa Origin 403; Origin akbarwiran.github.io 200;
+  Origin jahat 403; /healthz loopback 200 (publik 403 by design).
+- Server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS (3+9+1+8+28, per-file);
+  prod-smoke produksi 14/14 PASS.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL
+  HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden).
+  Tanpa drift, tanpa perubahan kode.
