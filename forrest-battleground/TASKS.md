@@ -1243,3 +1243,17 @@ _(IN PROGRESS)_
   Server suite 36/36 PASS (~35,4 s) · unit FE 49/49 PASS (~0,4 s) · prod-smoke produksi 14/14 PASS (origin-deny 403 ×2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
   Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
 - Run cron #111 (7 Nov 2026): pra-cek bersih (nginx/service/timer active, disk 38 GB free / 44%, HEAD=origin/main `53a638c`). Healthz loopback 200. Verifikasi penuh (PATH=/opt/node24/bin): server suite 36/36 PASS (~35,4 s) · unit FE 49/49 PASS · prod-smoke produksi 14/14 PASS. Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden run ini). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-07 (run #112) — verifikasi penuh, tanpa drift, tanpa item baru
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer
+  semua active; disk 38 GB free (44%); HEAD = origin/main (1db2aa9) sebelum run;
+  tanpa insiden sesi paralel.
+- Healthz loopback 127.0.0.1:3000/healthz → 200.
+- Verifikasi penuh (PATH=/opt/node24/bin:$PATH):
+  server suite 36/36 PASS (~35,4 s, node --test tests/*.test.js dari server/),
+  unit FE 49/49 PASS (node --test tests/unit/*.test.js dari root),
+  prod-smoke produksi 14/14 PASS (forged-token 401, logout revoke 401,
+  WS joined 20 Hz cap=8) — node server/tests/prod-smoke.mjs.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni
+  PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi
+  paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
