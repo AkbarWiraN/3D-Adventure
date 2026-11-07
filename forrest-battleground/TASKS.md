@@ -1257,3 +1257,12 @@ _(IN PROGRESS)_
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni
   PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi
   paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #113 (7 Nov 2026)
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer semua active; disk 38 GB free (44%); HEAD = origin/main (96c9bfc) sebelum run; tanpa insiden sesi paralel.
+- Healthz loopback 127.0.0.1:3000/healthz → 200.
+- Verifikasi penuh (PATH=/opt/node24/bin:$PATH):
+  - Server suite 36/36 PASS (~35,3 s, node --test tests/*.test.js dari server/)
+  - Unit FE 49/49 PASS (node --test tests/unit/*.test.js dari root)
+  - Prod-smoke produksi 14/14 PASS (node server/tests/prod-smoke.mjs — forged-token 401, logout revoke 401, WS joined 20 Hz cap=8, ws_origin_deny close=1008).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
