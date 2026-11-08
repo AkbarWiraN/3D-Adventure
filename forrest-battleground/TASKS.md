@@ -1916,3 +1916,11 @@ _(IN PROGRESS)_
 - Origin guard manual: no-origin/bad-origin → 403 `ORIGIN_FORBIDDEN`; `/api/v1/leaderboard` good-origin tanpa token → 401 `NO_TOKEN`; `/healthz` loopback 200 `{ok:true,db:true}`.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan #2 dipertajam: insiden ke-5 ini membuktikan kesepakatan jendela sesi paralel MENDESAK (produksi down nyata ~4 menit, bukan sekadar risiko).
 - Perubahan hanya dokumentasi (TASKS.md). Tanpa perubahan kode.
+
+### Run cron #218 (2026-11-09) — drift ops KEENAM: Apache re-enabled, produksi down ~10 mnt, dipulihkan
+- Pra-cek menemukan regresi keenam: nginx **inactive+disabled**, Apache **active+enabled** sejak 03:55:40 CST (percobaan start Apache 03:55:25 gagal bind :80 karena nginx masih pegang → nginx di-stop 03:55:37-38 → Apache start sukses 03:55:40). `https://api-be.bssn.biz.id/healthz` gagal total (curl 000) → produksi down sejak 03:55 hingga pemulihan 04:05 (**~10 menit**, terlama sejauh ini).
+- Pemulihan (preseden #217): `disable --now apache2` + `enable --now nginx` → cert LE asli kembali terlayani (CN=api-be.bssn.biz.id, issuer YE2, valid s.d. 2027-02-02). Backend `forest-battleground` tidak pernah mati (loopback :3000, `/healthz` 200 `{ok:true,db:true}` selama insiden). Backup `game-20261109-031701.sqlite` (03:17) aman pra-insiden; `fb-backup.timer` next 03:17 besok.
+- Verifikasi penuh pasca-pulih: server suite **36/36 PASS** (38,2 s) · unit FE **49/49 PASS** · **prod-smoke produksi 14/14 PASS** (origin-deny ×2, register 409 idempotent, login JWT, users/me, leaderboard top10+me, forest status online=0 hardCap=8, WS origin-deny 1008, WS auth_ok+join 20Hz, forged-token 401, logout revoke 401).
+- Pola drift terkini: insiden #5 (03:37) dan #6 (03:55) terjadi **di hari yang sama dengan jarak hanya 18 menit antar-start Apache** — eskalasi frekuensi nyata (sebelumnya jarak antar-insiden ≥ 1 hari).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). **Butuh Keputusan #2 KRITIS**: 6 insiden drift ops, 2 di antaranya malam ini dalam 18 menit, downtime produksi nyata ~10 menit — tanpa kesepakatan jendela sesi paralel, pemulihan hanya reaktif.
+- Perubahan hanya dokumentasi (TASKS.md). Tanpa perubahan kode.
