@@ -1790,3 +1790,10 @@ _(IN PROGRESS)_
 - Healthz sesuai desain: loopback 127.0.0.1:3000/healthz → 200; publik tanpa Origin → 403 (loopback-only by design); /api/v1/health Origin akbarwiran.github.io → 200, Origin evil.example.com → 403.
 - Verifikasi penuh (env -i, PATH=/opt/node24/bin): unit FE 49/49 PASS · server suite 36/36 PASS (~35,5 s) · build:pages 5/5 entry 38 file 2,11 MB audit lolos · audit:dist lolos · prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 idempotent → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Checkpoint cron #200 — 8 Nov 2026 (verifikasi penuh berulang, nol drift)
+- Pra-cek: 4 service active (forest-battleground, nginx, fb-backup.timer, fb-disk-check.timer); git sinkron origin/main.
+- Origin guard EXACT: healthz loopback 200; publik tanpa Origin 403; Origin https://akbarwiran.github.io 200; Origin https://evil.example.com 403.
+- Bukti deterministik (env -i, node24): unit FE 49/49 PASS; server suite 36/36 PASS (~35,4 s); build:pages 5/5 entry, 38 file, 2,11 MB, audit lolos; audit:dist lolos; prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 idempotent → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Catatan: path runner unit FE benar `node --test tests/unit/*.test.js`; runner server benar `npm test` (tests/*.test.js) — kesalahan path run #199 (`test/*.test.js` pass 0) tidak diulang.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
