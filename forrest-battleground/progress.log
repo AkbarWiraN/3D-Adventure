@@ -381,3 +381,4 @@ FIX:
 HASIL NYATA:
   unit 49/49 · browser-smoke PASS · mobile-emu PASS · leak-20x PASS
 PENDING_MANUAL: verifikasi rasa di HP asli oleh Ken (kamera/lompat/tiarap/bot).
+- Run cron #177 (2026-11-08): verifikasi penuh berulang — pra-cek bersih (4 service active, disk 38 GB free 44%, HEAD==origin/main), origin guard EXACT (loopback 200, origin ok 200, origin jahat 403). Deterministik env-kosong: unit FE 49/49 PASS, server suite 36/36 PASS, build:pages 5/5 entry 38 file 2,11 MB audit lolos, prod-smoke produksi 14/14 PASS (origin-deny 403 x2 → 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401). Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
