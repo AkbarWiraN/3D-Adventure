@@ -8,9 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test tests/unit/*.test.js",
-    "serve": "node scripts/serve.mjs",
-    "build:pages": "node scripts/build-pages.mjs",
-    "audit:dist": "node scripts/audit-dist.mjs"
+    "test": "/opt/node24/bin/node --test tests/unit/*.test.js",
+    "serve": "/opt/node24/bin/node scripts/serve.mjs",
+    "build:pages": "/opt/node24/bin/node scripts/build-pages.mjs",
+    "audit:dist": "/opt/node24/bin/node scripts/audit-dist.mjs"
   }
 }
