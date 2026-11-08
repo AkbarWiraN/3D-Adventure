@@ -1609,3 +1609,5 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin akbarwiran.github.io 200; Origin evil.example 403.
 - Verifikasi penuh: server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS (node --test tests/unit/*.test.js); prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+- Cron #170 (08 11月 2026): verifikasi penuh — pra-cek 4 service active, disk 38 GB free, HEAD sinkron origin/main, tree bersih; origin guard EXACT (healthz 200 / health+origin-ok 200 / origin-jahat 403); server suite 36/36 PASS; unit FE 49/49 PASS; prod-smoke 14/14 PASS.
+  Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
