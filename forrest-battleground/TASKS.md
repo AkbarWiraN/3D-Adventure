@@ -1888,3 +1888,14 @@ _(IN PROGRESS)_
 - Nilai tambah run ini — **restore drill** (pertama kali): backup timer `game-20261108-031700.sqlite` → `--verify` integrity=ok users=27 → copy ke file temp → dibuka ulang: integrity_check ok, users=27, stats=27, sample row terbaca, 4 tabel lengkap, smoke test tulis (BEGIN IMMEDIATE + INSERT + ROLLBACK) berhasil → file drill dihapus. Backup bukan cuma dibuat, tapi **terbukti bisa dipulihkan dan ditulis**.
 - Gotcha tercatat: `--verify` pakai path absolut (path relatif `../../backups` diresolve dari cwd, gagal MODULE_NOT_FOUND jika cwd salah — by design).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #215 (2026-11-09) — restore drill tahap 2: backup diserve backend produksi-style
+- Pra-cek: 4 service active (`forest-battleground`, nginx, `fb-backup.timer`, `fb-disk-check.timer`); disk 38 GB free (44%); tree bersih sinkron `origin/main`; sertifikat LE valid s.d. 2027-02-02 (89 hari).
+- Bukti: unit FE **49/49 PASS** (`npm test`, ~0,36 s); timer `fb-backup` next 03:17, `fb-disk-check` next 04:03.
+- Nilai tambah run ini — **restore→serve drill** (pertama kali): run #214 membuktikan backup bisa dibuka & ditulis; run ini membuktikan backup **bisa diserve oleh kode produksi**:
+  1. Copy backup timer `game-20261108-031700.sqlite` ke scratch → `backup-db.mjs` (DATABASE_FILE override) → integrity=ok users=27 → backup loop berfungsi penuh dari file restore.
+  2. Jalankan `src/server.js` produksi-style (PORT=3123, bind 127.0.0.1, AUTH_SECRET ≥32 byte, FRONTEND_ORIGINS exact) pakai file backup itu → `/healthz` 200 `{ok:true,db:true}`.
+  3. Origin guard hidup di instance restore: no-origin → 403 `ORIGIN_FORBIDDEN`, bad-origin (`evil.example`) → 403 — persis perilaku produksi.
+  4. Query leaderboard repo langsung dari file restore: users=27, stats=27, top-3 terbaca (`akbarwir`, `uitest3`, `ui_ffzsgj`).
+  5. Instance drill dimatikan, scratch dihapus; produksi di :3000 tidak tersentuh.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
