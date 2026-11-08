@@ -1655,3 +1655,10 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin akbarwiran.github.io 200, Origin evil.example 403.
 - Verifikasi deterministik (env -i PATH=/usr/bin:/bin): unit FE 49/49 PASS; server suite 36/36 PASS; build:pages 5/5 entry, 38 file, 2,11 MB, audit lolos; prod-smoke produksi 14/14 PASS (origin-deny 403 x2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+- Run #178 (8 Nov 2026): verifikasi penuh berulang — 4 service active, disk 38G free (44%),
+  HEAD sinkron origin/main, tree bersih. Origin guard EXACT (healthz 200 / good 200 / evil 403).
+  Deterministik: FE 49/49 PASS, server 36/36 PASS, build:pages 5/5 entry 38 file 2,11 MB audit
+  lolos, audit:dist lolos, prod-smoke 14/14 PASS.
+  Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli
+  (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift,
+  tanpa perubahan kode.
