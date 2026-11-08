@@ -1812,3 +1812,13 @@ _(IN PROGRESS)_
 - Bukti deterministik (`env -i`, node24 absolut): unit FE **49/49 PASS** (359 ms); server suite **36/36 PASS** (~35,5 s); `build:pages` → 5/5 entry, 38 file, 2,11 MB, audit lolos; `audit:dist` lolos; prod-smoke produksi **14/14 PASS** (origin-deny 403 → protected 401 → register 409 idempotent → login JWT → users/me → leaderboard → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - `/healthz` publik tetap 403 by design (nginx allow loopback only); allowlist Origin EXACT `https://akbarwiran.github.io` terbukti di endpoint API.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Checkpoint cron #203 — 8 Nov 2026 (verifikasi penuh berulang, nol drift)
+
+- Pra-cek: 4 service active (`forest-battleground` uptime sejak 5 Nov, mem 119,2M; nginx; `fb-backup.timer`; `fb-disk-check.timer`); disk 38 GB free (44%); tree bersih, sinkron `origin/main`.
+- Unit FE `env -i /opt/node24/bin/node --test tests/unit/*.test.js` → **49/49 PASS** (350 ms).
+- Server suite `node --test server/tests/*.test.js` → **36/36 PASS** (~35,4 s).
+- `build:pages` → 5/5 entry, 38 file, 2,11 MB, audit lolos; `audit:dist` lolos.
+- Prod-smoke produksi **14/14 PASS** (origin-deny 403 ×2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Catatan teknis run ini: path runner FE yang benar adalah `node --test tests/unit/*.test.js` (tidak ada `tests/unit/run.js` — salah ketik sesaat, langsung terkoreksi tanpa dampak).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
