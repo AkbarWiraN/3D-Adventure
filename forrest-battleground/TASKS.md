@@ -1804,3 +1804,11 @@ _(IN PROGRESS)_
 - Healthz loopback 200; publik 403 by design (nginx `allow 127.0.0.1; deny all` di `/healthz`) — berlaku untuk semua Origin, ini desain dokumentasi, bukan regresi. Origin guard backend diverifikasi via prod-smoke (origin-deny 403 untuk no-origin & evil origin; allowlist EXACT lolos di step berikut).
 - Verifikasi penuh (env -i, PATH=/opt/node24/bin): unit FE 49/49 PASS (361 ms) · server suite 36/36 PASS (~35,4 s) · build:pages 5/5 entry, 38 file, 2,11 MB, audit lolos · audit:dist lolos · prod-smoke produksi 14/14 PASS (origin-deny → protected 401 → register 409 idempotent → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden run ini). Tanpa drift, tanpa perubahan kode.
+
+---
+
+## Checkpoint cron #202 — 8 Nov 2026 (verifikasi penuh berulang, nol drift)
+- Pra-cek: 4 service active (`forest-battleground` uptime sejak 5 Nov, mem 113,7M; nginx; fb-backup.timer; fb-disk-check.timer); disk 38 GB free (44%); tree bersih sinkron origin/main.
+- Bukti deterministik (`env -i`, node24 absolut): unit FE **49/49 PASS** (359 ms); server suite **36/36 PASS** (~35,5 s); `build:pages` → 5/5 entry, 38 file, 2,11 MB, audit lolos; `audit:dist` lolos; prod-smoke produksi **14/14 PASS** (origin-deny 403 → protected 401 → register 409 idempotent → login JWT → users/me → leaderboard → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- `/healthz` publik tetap 403 by design (nginx allow loopback only); allowlist Origin EXACT `https://akbarwiran.github.io` terbukti di endpoint API.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
