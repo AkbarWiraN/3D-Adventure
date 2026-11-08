@@ -1712,3 +1712,13 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz 200; /api/v1/health Origin allow 200, Origin evil 403.
 - Regresi hijau: unit FE 49/49; server suite 36/36 (~35,4 s); build:pages 5/5 entry, 38 file, 2,11 MB, audit lolos; prod-smoke produksi 14/14 PASS.
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Catatan run 2026-11-08 (cron #187) — verifikasi penuh, tanpa drift, tanpa item baru
+- Pra-cek bersih: forest-battleground + nginx active; fb-backup.timer & fb-disk-check.timer active; backend bind 127.0.0.1:3000; disk 38 GB free (44%); origin/main sinkron di 9d36bbb sebelum run. Tanpa insiden sesi paralel.
+- Origin guard EXACT: loopback /healthz -> 200; Origin https://akbarwiran.github.io -> 200; Origin https://evil.example.com -> 403.
+- Verifikasi penuh (env -i, PATH=/opt/node24/bin):
+  - Unit FE 49/49 PASS (node --test tests/unit/*.test.js)
+  - Server suite 36/36 PASS (~35,4 s)
+  - build:pages -> 5/5 entry, 38 file, 2,11 MB, audit lolos; audit:dist -> lolos
+  - Prod-smoke produksi 14/14 PASS: origin-deny 403 (no-origin & evil) -> protected 401 -> register idempotent 409 -> login JWT -> users/me -> leaderboard top10+me -> forest status (online=0, hardCap=8) -> WS origin-deny 1008 -> auth_ok -> joined 20 Hz -> forged-token 401 -> logout revoke 401.
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
