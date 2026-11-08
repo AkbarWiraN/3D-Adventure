@@ -1899,3 +1899,10 @@ _(IN PROGRESS)_
   4. Query leaderboard repo langsung dari file restore: users=27, stats=27, top-3 terbaca (`akbarwir`, `uitest3`, `ui_ffzsgj`).
   5. Instance drill dimatikan, scratch dihapus; produksi di :3000 tidak tersentuh.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #216 (2026-11-09) — live-observe timer backup 03:17, nol drift
+- Pra-cek: 4 service active (`forest-battleground`, nginx, `fb-backup.timer`, `fb-disk-check.timer`); disk 38 GB free (44%); sertifikat LE api-be valid s.d. 2027-02-02 (85 hari); tree bersih sinkron `origin/main`; journal backend hari ini nol error.
+- Bukti run ini: unit FE **49/49 PASS** (`npm test`); endpoint publik origin-guarded: no-origin/bad-origin → 403 `ORIGIN_FORBIDDEN`; `/api/v1/leaderboard` tanpa token → 401 `NO_TOKEN`; `/healthz` internal 200 `{ok:true,db:true}`, eksternal 403 by design (nginx allow 127.0.0.1, deny all — terdokumentasi di vhost).
+- Nilai tambah run ini — **observasi langsung timer backup live** (pertama kali): run dijadwalkan menunggu jendela 03:17 CST dan menyaksikan `fb-backup.service` jalan real: `game-20261109-031701.sqlite` tercipta tepat waktu, journal `Result=success` "backup ok (60.0 KB)", verify internal integrity=ok users=27, retensi 5 file / 0 dihapus. Verifikasi mandiri eksternal via `getDb()` (DATABASE_FILE override): integrity ok, 4 tabel lengkap, users=27, stats=27, top-3 leaderboard terbaca (`akbarwir`, `uitest3`, `ui_ffzsgj`).
+- Gotcha tercatat: kolom display di tabel `users` bernama `username_display`/`username_canonical` (bukan `username`) — query manual harus pakai nama itu; `db.js` export `getDb()/closeDb()` (bukan `openDb`).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
