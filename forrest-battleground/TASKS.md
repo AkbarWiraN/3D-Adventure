@@ -1875,3 +1875,9 @@ _(IN PROGRESS)_
   Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
 - [2026-11-09 cron #212] Verifikasi berulang: service active ×4; unit FE 49/49 PASS (0,36 s); leaderboard good-origin 401 (auth wall), no-origin 403, bad-origin 403; /healthz internal 200 {ok,db}; HEAD == origin/main (4a1279a).
   Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #213 (2026-11-09) — verifikasi berulang + drill backup, nol drift
+- Pra-cek: 4 service active (`forest-battleground`, nginx, `fb-backup.timer`, `fb-disk-check.timer`); disk 38 GB free (44%); tree bersih sinkron `origin/main`.
+- Bukti: unit FE **49/49 PASS** (`npm test`); origin guard produksi: good-origin → **401** (auth wall), no-origin → **403**, bad-origin → **403**; `/healthz` internal 200 `{ok:true,db:true}`, via nginx 403 (by design).
+- Drill backup manual: `server/scripts/backup-db.mjs` — integrity=ok, users=27, retensi jalan; file drill dihapus, timer harian 03:17 tetap sumber rotasi (next 2026-11-09 03:17).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
