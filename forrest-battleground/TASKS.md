@@ -1832,3 +1832,12 @@ _(IN PROGRESS)_
 - Prod-smoke produksi **14/14 PASS** (origin-deny 403 ×2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Origin allowlist terbukti langsung: `GET /api/healthz` publik tanpa Origin → 403; dengan Origin EXACT `https://akbarwiran.github.io` → lolos CORS (404 karena path API berversi `/api/v1/*`, bukan `/api/healthz` — konsisten, bukan drift).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Checkpoint cron #205 — 8 Nov 2026 malam (verifikasi penuh berulang, nol drift)
+
+- Pra-cek: 4 service active (`forest-battleground`, nginx, `fb-backup.timer`, `fb-disk-check.timer`); disk 38 GB free (44%); tree bersih, sinkron `origin/main` (`43ef54c`).
+- Unit FE `node --test tests/unit/*.test.js` → **49/49 PASS** (386 ms).
+- Server suite `node --test server/tests/*.test.js` → **36/36 PASS** (~35,4 s).
+- `build:pages` → 5/5 entry, 38 file, 2,11 MB, audit lolos; `audit:dist` lolos.
+- Prod-smoke produksi **14/14 PASS** (origin-deny 403 ×2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
