@@ -1873,3 +1873,5 @@ _(IN PROGRESS)_
   build:pages 5/5 entry 38 file 2,11 MB audit lolos, audit:dist lolos, prod-smoke 14/14 PASS.
   Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31).
   Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+- [2026-11-09 cron #212] Verifikasi berulang: service active ×4; unit FE 49/49 PASS (0,36 s); leaderboard good-origin 401 (auth wall), no-origin 403, bad-origin 403; /healthz internal 200 {ok,db}; HEAD == origin/main (4a1279a).
+  Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
