@@ -1881,3 +1881,10 @@ _(IN PROGRESS)_
 - Bukti: unit FE **49/49 PASS** (`npm test`); origin guard produksi: good-origin → **401** (auth wall), no-origin → **403**, bad-origin → **403**; `/healthz` internal 200 `{ok:true,db:true}`, via nginx 403 (by design).
 - Drill backup manual: `server/scripts/backup-db.mjs` — integrity=ok, users=27, retensi jalan; file drill dihapus, timer harian 03:17 tetap sumber rotasi (next 2026-11-09 03:17).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #214 (2026-11-09) — restore drill backup, nol drift
+- Pra-cek: 4 service active (`forest-battleground`, nginx, `fb-backup.timer`, `fb-disk-check.timer`); disk 38 GB free (44%); tree bersih sinkron `origin/main`; uptime backend 3 hari, RAM 113,7 MB.
+- Bukti: unit FE **49/49 PASS** (`npm test`); origin guard produksi: good-origin → **200** (config/public), no-origin → **403**, bad-origin → **403**; `/healthz` internal 200 `{ok:true,db:true}`, eksternal 403 (by design); listen 127.0.0.1:3000.
+- Nilai tambah run ini — **restore drill** (pertama kali): backup timer `game-20261108-031700.sqlite` → `--verify` integrity=ok users=27 → copy ke file temp → dibuka ulang: integrity_check ok, users=27, stats=27, sample row terbaca, 4 tabel lengkap, smoke test tulis (BEGIN IMMEDIATE + INSERT + ROLLBACK) berhasil → file drill dihapus. Backup bukan cuma dibuat, tapi **terbukti bisa dipulihkan dan ditulis**.
+- Gotcha tercatat: `--verify` pakai path absolut (path relatif `../../backups` diresolve dari cwd, gagal MODULE_NOT_FOUND jika cwd salah — by design).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
