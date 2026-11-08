@@ -1636,3 +1636,9 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz loopback 200; /api/v1/health Origin akbarwiran.github.io 200, Origin evil.example 403.
 - Verifikasi penuh (node /opt/node24): server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (origin-deny 403 x2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401). Tidak ada rekurensi flake run #173 (run kali ini pertama kali langsung hijau).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Run cron #175 — 8 Nov 2026 (patch permanen gotcha Node24 PATH)
+- Pra-cek: 4 service active, disk 38 GB free, HEAD sinkron origin/main, tree bersih. Origin guard EXACT: healthz 200 / ok-origin 200 / evil-origin 403.
+- TEMUAN & PERBAIKAN: `npm test` pertama gagal 2 (auth.test ERR_DLOPEN_FAILED better-sqlite3, meng-cancel 13 test) karena cron/env default memakai `/usr/bin/node` v22 — pengulangan persis gotcha yang sebelumnya hanya terdokumentasi. Dipatch permanen: `server/package.json` scripts `test`/`test:http` kini memanggil `/opt/node24/bin/node` absolut.
+- Verifikasi patch: `env -i PATH=/usr/bin:/bin npm test` (PATH tanpa node24) → **36/36 PASS (~35,4 s)**; unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (origin-deny 403 x2 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Satu-satunya perubahan: patch package.json (anti-flake deterministik).
