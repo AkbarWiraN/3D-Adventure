@@ -1623,3 +1623,10 @@ _(IN PROGRESS)_
 - Origin guard EXACT: /healthz 200; /api/v1/health Origin baik 200, Origin jahat 403.
 - Server suite 36/36 PASS (~35,4 s); Unit FE 49/49 PASS; Prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+## Run cron #173 — 8 Nov 2026 (verifikasi penuh, nol drift)
+- Pra-cek: forest-battleground.service, nginx, fb-backup.timer, fb-disk-check.timer active; disk 38 GB free (44%); HEAD sinkron origin/main, working tree bersih.
+- Origin guard EXACT: /healthz 200; /api/v1/health Origin akbarwiran.github.io 200, Origin evil.example 403.
+- Catatan flake: `npm test` pertama sempat fail (auth.test.js + cascade realtime 13 cancel) — terbukti transient kontes antar-runner (rerun eksplisit /opt/node24/bin node --test tests/*.test.js dua kali berturut 36/36 PASS; auth+http bersama 11/11 PASS tiga kali). Bukan regresi kode.
+- Verifikasi penuh: server suite 36/36 PASS (~35,4 s); unit FE 49/49 PASS; prod-smoke produksi 14/14 PASS (origin-deny 403 → protected 401 → register 409 → login JWT → users/me → leaderboard top10+me → forest online=0 cap=8 → WS origin-deny 1008 → auth_ok → joined 20 Hz → forged-token 401 → logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
