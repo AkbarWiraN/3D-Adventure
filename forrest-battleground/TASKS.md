@@ -396,7 +396,9 @@ _(IN PROGRESS)_
    menonaktifkan Apache sendiri (`disable --now`); nginx di-enable --now (malam #5),
    cert LE asli terlayani, browser-smoke produksi PASS. Kalau Apache dibutuhkan
    lagi nanti, tetap perlu kesepakatan port (lihat OPS_CHECKLIST.md).
-2. **Sesi paralel berulang kali mematikan service game (3× dalam 1 hari).**
+2. **Sesi paralel berulang kali mematikan/mengganggu service game (3× dalam 1 hari;
+   tambahan 9 Nov 03:37: nginx di-stop + apache2 di-enable/start → produksi down ~4 mnt
+   sampai run #217 memulihkan).**
    Usul: sepakati bahwa sesi lain tidak menyentuh forest-battleground.service /
    nginx.service / fb-backup.timer, atau jadwalkan jendela pentest yang jelas.
 
@@ -1906,3 +1908,11 @@ _(IN PROGRESS)_
 - Nilai tambah run ini — **observasi langsung timer backup live** (pertama kali): run dijadwalkan menunggu jendela 03:17 CST dan menyaksikan `fb-backup.service` jalan real: `game-20261109-031701.sqlite` tercipta tepat waktu, journal `Result=success` "backup ok (60.0 KB)", verify internal integrity=ok users=27, retensi 5 file / 0 dihapus. Verifikasi mandiri eksternal via `getDb()` (DATABASE_FILE override): integrity ok, 4 tabel lengkap, users=27, stats=27, top-3 leaderboard terbaca (`akbarwir`, `uitest3`, `ui_ffzsgj`).
 - Gotcha tercatat: kolom display di tabel `users` bernama `username_display`/`username_canonical` (bukan `username`) — query manual harus pakai nama itu; `db.js` export `getDb()/closeDb()` (bukan `openDb`).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). Tanpa drift, tanpa perubahan kode.
+
+### Run cron #217 (2026-11-09) — drift ops KELIMA: Apache re-enabled, produksi down ~4 mnt, dipulihkan
+- Pra-cek menemukan **regresi nyata**: nginx **inactive+disabled**, Apache **active+enabled** sejak 03:37:40 CST hari ini (nginx di-stop 03:37:08, Apache start 03:37:40 — pola persis insiden 5 Nov). Port 80/443 dipegang Apache; `api-be.bssn.biz.id:443` **tidak melayani cert** (s_client gagal baca cert) → produksi game efektif down sejak 03:37 hingga pemulihan 03:42 (~4 mnt). Backend `forest-battleground` sendiri tetap active (loopback :3000 tidak terganggu); `fb-backup.timer` 03:17 sudah jalan normal SEBELUM insiden (file `game-20261109-031701.sqlite` aman).
+- Pemulihan (preseden malam #5, tanpa mengubah file Apache): `systemctl disable --now apache2` + `systemctl enable --now nginx` → nginx active+enabled, port 80/443 kembali nginx, cert LE asli terlayani lagi (CN=api-be.bssn.biz.id, issuer YE2, valid s.d. 2027-02-02).
+- Verifikasi penuh pasca-pulih (PATH=/opt/node24/bin): server suite **36/36 PASS** (35,6 s) · unit FE **49/49 PASS** · **prod-smoke produksi 14/14 PASS** (origin-deny 403 ×2, JWT flow, leaderboard, WS origin-deny 1008/auth/join 20Hz, forged-token 401, logout revoke) — bukti stack end-to-end sehat setelah insiden.
+- Origin guard manual: no-origin/bad-origin → 403 `ORIGIN_FORBIDDEN`; `/api/v1/leaderboard` good-origin tanpa token → 401 `NO_TOKEN`; `/healthz` loopback 200 `{ok:true,db:true}`.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31, multitouch, notch). Butuh Keputusan #2 dipertajam: insiden ke-5 ini membuktikan kesepakatan jendela sesi paralel MENDESAK (produksi down nyata ~4 menit, bukan sekadar risiko).
+- Perubahan hanya dokumentasi (TASKS.md). Tanpa perubahan kode.
