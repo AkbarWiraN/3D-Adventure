@@ -4,3 +4,8 @@
 - Pra-cek bersih: nginx active, Apache inactive, backend active (127.0.0.1:3000 healthz 200, publik 403 by design), fb-backup.timer & fb-disk-check.timer active, disk 37 GB free (45%), HEAD sinkron origin/main.
 - Verifikasi penuh PASS: server suite 36/36 (~37,4 s), unit FE 49/49, prod-smoke produksi 14/14 PASS (origin-deny 403, protected 401, register 409 idempotent, login JWT, users/me, leaderboard, forest online=0 hardCap=8, WS origin-deny 1008 ORIGIN_FORBIDDEN, WS auth_ok, WS join 20 Hz, forged-token 401, logout revoke 401).
 - Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). **28 run beruntun tanpa drift.** Tanpa perubahan kode.
+
+### Run #248 — 9 Nov 2026 (~16:30 CST)
+- Pra-cek bersih: nginx active, Apache inactive, backend forest-battleground active (127.0.0.1:3000 healthz 200, publik 403 by design), fb-backup.timer & fb-disk-check.timer active, disk 37 GB free (44%), HEAD sinkron origin/main (ca7d32a).
+- Verifikasi penuh PASS: server suite 36/36 (~35,4 s), unit FE 49/49 (0,37 s), prod-smoke produksi 14/14 PASS (origin-deny 403, protected 401, register 409 idempotent, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WS origin-deny 1008 ORIGIN_FORBIDDEN, WS auth_ok, WS join 20 Hz hardCap=8, forged-token 401, logout revoke 401).
+- Checklist tetap nol item [ ] yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL (HP asli + laptop lintas jaringan: AT-31 PvP 5 hit, multitouch, notch). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden). **29 run beruntun tanpa drift.** Tanpa perubahan kode.
