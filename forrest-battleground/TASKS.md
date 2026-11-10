@@ -2134,3 +2134,13 @@ _(IN PROGRESS)_
 - Infrastruktur: `forest-battleground.service`, `fb-backup.timer`, `fb-disk-check.timer` active; listener backend hanya `127.0.0.1:3000`; loopback healthz `{"ok":true,"db":true}`. Disk 37 GB free (45%), RAM available ~2,3 GB.
 - Gotcha verifikasi: invocation awal realtime suite memakai `node` sistem v22 dan gagal memuat addon `better-sqlite3` (NODE_MODULE_VERSION 127 vs 137); rerun dengan Node 24 yang disyaratkan lulus 13/13. Backend suite dan production smoke dengan Node24 lulus; tidak ada perubahan service atau runtime.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS. PENDING_MANUAL: laptop+HP beda jaringan PvP/AT-31, FPS/panas/baterai, multitouch sentuh nyata, safe-area iPhone. Butuh Keputusan: jendela sesi paralel. Tanpa perubahan kode; checkpoint dokumentasi saja.
+
+
+### Cron run #290 (10 Nov 2026, verifikasi ulang penuh)
+- Pra-cek: `nginx`, `forest-battleground.service`, `fb-backup.timer`, `fb-disk-check.timer` active; backend hanya listen `127.0.0.1:3000`; healthz loopback **200** (`{"ok":true,"db":true}`).
+- Frontend unit `npm test`: **49/49 PASS** (~0,36 s). Backend `server/npm test` dengan Node 24: **36/36 PASS** (~35,4 s).
+- Build Pages `npm run build:pages`: **38 file, 2,11 MB**, audit whitelist lolos (tanpa server/.env/db/markdown).
+- Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — Origin deny, JWT/profil/leaderboard, forest online=0 hardCap=8, WSS Origin deny/auth/join 20 Hz, forged token, logout revocation.
+- Curl terpisah: Origin exact `https://akbarwiran.github.io` pada `/api/v1/leaderboard` **401** (butuh JWT — routing+CORS lolos), Origin asing/tanpa Origin **403**, `/healthz` publik **403** sesuai loopback-only.
+- Gotcha run sebelumnya (dibersihkan): sisa working tree kotor dari run #289 yang gagal dengan error `HTTP 401: Invalid API key` di-resolve via `git checkout`; service systemd bernama benar `forest-battleground.service` (bukan `forest-battleground-api`).
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit, leaderboard, exit/rejoin, FPS/panas/baterai, multitouch, safe-area iPhone). **Butuh Keputusan:** jendela sesi paralel. Tanpa perubahan kode; checkpoint dokumentasi saja. Disk 37 GB free, RAM available ~2,3 GB.
