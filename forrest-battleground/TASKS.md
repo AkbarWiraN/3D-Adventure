@@ -2188,3 +2188,9 @@ _(IN PROGRESS)_
 - Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — origin-deny ×2, protected 401, register 409 idempotent, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WSS origin-deny 1008 ORIGIN_FORBIDDEN, auth_ok, joined 20 Hz, forged-token 401, logout revoke 401.
 - Catatan: `https://api-be.bssn.biz.id/healthz` publik balik **403 by design** (nginx `location = /healthz` allow 127.0.0.1 only); smoke produksi tidak menguji healthz eksternal sehingga tidak terdampak.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit lintas jaringan, multitouch, notch, FPS/panas/baterai). **Butuh Keputusan:** jendela sesi paralel. Tanpa drift, tanpa perubahan kode; dokumentasi saja. Disk 37 GB free (45%).
+
+### Cron run #297 (10 Nov 2026, verifikasi ulang penuh)
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer **active**; backend hanya listen 127.0.0.1:3000; healthz loopback **200**. HEAD `54113f8` sinkron origin/main sebelum kerja.
+- Frontend unit `npm test`: **49/49 PASS** (~0,36 s). Backend `server/` Node 24: **36/36 PASS** (~35,4 s).
+- Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — origin-deny ×2, protected 401, register 409 idempotent, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WSS origin-deny 1008 ORIGIN_FORBIDDEN, auth_ok, joined 20 Hz, forged-token 401, logout revoke 401.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit lintas jaringan, multitouch, notch, FPS/panas/baterai). **Butuh Keputusan:** jendela sesi paralel. Tanpa drift, tanpa perubahan kode; dokumentasi saja. Disk 37 GB free (45%).
