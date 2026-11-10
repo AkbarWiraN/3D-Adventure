@@ -2214,3 +2214,9 @@ _(IN PROGRESS)_
 - nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer semua **active** dan **enabled**; backend listen hanya 127.0.0.1:3000; healthz loopback **200**; `/healthz` publik **403 by design** (nginx allow 127.0.0.1 only); disk 37 GB free (45%). HEAD `22fac10` sinkron origin/main.
 - Server suite (Node 24): **36/36 PASS** (~35,4 s) · unit FE **49/49 PASS** (~0,38 s) · prod-smoke produksi **14/14 PASS** (WS origin-deny 1008 ORIGIN_FORBIDDEN, auth_ok, join 20 Hz cap=8, forged-token 401, logout revoke 401).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL HP asli (AT-31). Butuh Keputusan tetap 1 item (jendela sesi paralel — tanpa insiden baru). Tanpa drift, tanpa perubahan kode.
+
+### Run cron 2026-11-10 (run #214 — FINAL, cron di-pause)
+- Verifikasi penuh (PATH=/opt/node24/bin:$PATH): systemd 4/4 active+enabled; backend bind 127.0.0.1:3000; healthz loopback 200 / publik 403 by design; unit FE **49/49 PASS**; server suite **36/36 PASS** (~35,6 s); prod-smoke **14/14 PASS**. Disk 37 GB free (45%). HEAD==origin/main.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti, sisa murni PENDING_MANUAL HP asli (AT-31 PvP 5 hit, multitouch, notch, FPS/panas/baterai).
+- **AKSI:** Job cron `forest-battleground-builder` (interval 20 menit, 335 run selesai) **di-pause** di `/home/ubuntu/.hermes/cron/jobs.json` (backup: `jobs.json.bak-20261110_153935`). Alasan: proyek tuntas, 72+ run terakhir identik "nol drift" — burn 3x/jam tanpa nilai tambah. Ken bisa unpause kapan saja.
+- Butuh Keputusan tetap 1 item: jendela sesi paralel — tanpa insiden.
