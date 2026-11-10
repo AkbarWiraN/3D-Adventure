@@ -2144,3 +2144,11 @@ _(IN PROGRESS)_
 - Curl terpisah: Origin exact `https://akbarwiran.github.io` pada `/api/v1/leaderboard` **401** (butuh JWT — routing+CORS lolos), Origin asing/tanpa Origin **403**, `/healthz` publik **403** sesuai loopback-only.
 - Gotcha run sebelumnya (dibersihkan): sisa working tree kotor dari run #289 yang gagal dengan error `HTTP 401: Invalid API key` di-resolve via `git checkout`; service systemd bernama benar `forest-battleground.service` (bukan `forest-battleground-api`).
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit, leaderboard, exit/rejoin, FPS/panas/baterai, multitouch, safe-area iPhone). **Butuh Keputusan:** jendela sesi paralel. Tanpa perubahan kode; checkpoint dokumentasi saja. Disk 37 GB free, RAM available ~2,3 GB.
+
+
+### Cron run #291 (10 Nov 2026, verifikasi ulang penuh)
+- Pra-cek: `nginx`, `forest-battleground.service`, `fb-backup.timer`, `fb-disk-check.timer` active; backend hanya listen `127.0.0.1:3000`; healthz loopback **200** (`{"ok":true,"db":true}`). HEAD `b855077` sinkron origin/main sebelum kerja.
+- Frontend unit `npm test`: **49/49 PASS** (~0,37 s). Backend `server/npm test` dengan Node 24: **36/36 PASS** (~35,4 s).
+- Build Pages `npm run build:pages`: **38 file, 2,11 MB**, audit whitelist lolos (tanpa server/.env/db/markdown).
+- Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — Origin deny ×2, protected 401, register idempotent 409, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WSS Origin deny 1008 ORIGIN_FORBIDDEN, auth_ok, joined 20 Hz, forged-token 401, logout revoke 401.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit, leaderboard, exit/rejoin, FPS/panas/baterai, multitouch, safe-area iPhone). **Butuh Keputusan:** jendela sesi paralel. Tanpa drift, tanpa perubahan kode; checkpoint dokumentasi saja. Disk 37 GB free (45%), RAM free ~2,6 GB.
