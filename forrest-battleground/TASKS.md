@@ -2168,3 +2168,10 @@ _(IN PROGRESS)_
 - Build Pages: **38 file, 2,11 MB**, audit whitelist lolos (tanpa server/.env/db/markdown).
 - Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — origin-deny ×2, protected 401, register 409, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WSS origin-deny 1008 ORIGIN_FORBIDDEN, auth_ok, joined 20 Hz, forged-token 401, logout revoke 401.
 - Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — sisa murni PENDING_MANUAL (AT-31 PvP 5 hit lintas jaringan, multitouch, notch, FPS/panas/baterai). **Butuh Keputusan:** jendela sesi paralel. Tanpa drift, tanpa perubahan kode; dokumentasi saja. Disk 37 GB free (45%), RAM available ~2,3 GB.
+
+
+### Cron run #294 (10 Nov 2026, verifikasi ulang penuh)
+- Pra-cek: nginx, forest-battleground.service, fb-backup.timer, fb-disk-check.timer **active**; backend hanya listen 127.0.0.1:3000; healthz loopback **200** (`{"ok":true,"db":true}`). HEAD `7f03c3d` sinkron origin/main sebelum kerja.
+- Frontend unit `npm test`: **49/49 PASS** (~0,37 s). Backend `server/npm test` Node 24: **36/36 PASS** (~35,5 s).
+- Smoke produksi `server/tests/prod-smoke.mjs`: **14/14 PASS** — origin-deny ×2, protected 401, register 409 idempotent, login JWT, users/me, leaderboard top10+me, forest online=0 hardCap=8, WSS origin-deny 1008 ORIGIN_FORBIDDEN, auth_ok, joined 20 Hz, forged-token 401, logout revoke 401.
+- Checklist tetap nol item `[ ]` yang bisa dikerjakan dari VPS — Fase 1–4 seluruhnya `[x]` berbukti. Sisa **PENDING_MANUAL** HP asli (AT-31 PvP 5 hit lintas jaringan, multitouch, notch, FPS/panas/baterai). **Butuh Keputusan:** jendela sesi paralel. Tanpa drift, tanpa perubahan kode; dokumentasi saja. Disk 37 GB free (45%), RAM available ~2,3 GB.
